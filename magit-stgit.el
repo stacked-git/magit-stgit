@@ -76,9 +76,6 @@
   :group 'magit-stgit
   :type 'boolean)
 
-(defvar magit-stgit-patch-buffer-name "*magit-stgit-patch*"
-  "Name of buffer used to display a stgit patch.")
-
 (defcustom magit-stgit-mode-lighter " Stg"
   "Mode-line lighter for Magit-Stgit mode."
   :group 'magit-stgit
@@ -134,9 +131,6 @@
   (with-temp-buffer
     (apply 'process-file magit-stgit-executable nil (list t nil) nil args)
     (split-string (buffer-string) "\n" 'omit-nulls)))
-
-(defun magit-stgit-insert (&rest args)
-  (apply 'process-file magit-stgit-executable nil (list t nil) nil args))
 
 (defvar magit-stgit-read-patch-history nil)
 
@@ -297,20 +291,7 @@ into the series."
 (defun magit-stgit-show (patch)
   "Show diff of a StGit patch."
   (interactive (magit-stgit-read-args "Show patch"))
-  (magit-mode-setup magit-stgit-patch-buffer-name
-                    #'pop-to-buffer
-                    #'magit-revision-mode
-                    #'magit-stgit-refresh-patch-buffer
-                    patch))
-
-(defun magit-stgit-refresh-patch-buffer (patch)
-  (magit-insert-section (stgit-patch)
-    (magit-stgit-insert "show"
-                        "--diff-opts=--decorate=full"
-                        (and magit-diff-show-diffstat "--diff-opts=--patch-with-stat")
-                        patch)
-    (goto-char (point-min))
-    (magit-diff-wash-revision nil)))
+  (magit-show-commit (magit-stgit-lines "id")))
 
 ;;; Mode
 
