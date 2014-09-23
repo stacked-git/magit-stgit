@@ -227,6 +227,14 @@ into the series."
                       (magit-stgit-read-args "Target patch"))))
   (magit-run-stgit "sink" "-t" target patch))
 
+(defun magit-stgit-sink-1 (patch)
+  "Sink StGit patch one position down the stack."
+  (interactive (magit-stgit-read-args "Sink patch"))
+  (let* ((series (magit-stgit-lines "series" "--noprefix"))
+         (patch-position (-elem-index patch series)))
+    (when (and patch-position (> patch-position 0))
+      (magit-run-stgit "sink" "-t" (elt series (1- patch-position)) patch))))
+
 ;;;###autoload
 (defun magit-stgit-pop ()
   "Pop the topmost StGit patch from the stack."
@@ -361,6 +369,8 @@ into the series."
     (define-key map "s"  'magit-stgit-spill)
     (define-key map "r"  'magit-stgit-rename)
     (define-key map "c"  'magit-stgit-commit)
+    (define-key map "S"  'magit-stgit-sink-1)
+    (define-key map "F"  'magit-stgit-float)
     map))
 
 (defun magit-insert-stgit-series ()
