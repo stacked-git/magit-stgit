@@ -344,11 +344,15 @@ into the series."
 (defconst magit-stgit-patch-re
   "^\\(.\\)\\([-+>!]\\) \\([^ ]+\\) +# \\(.*\\)$")
 
-(defvar magit-stgit-patch-map
+(defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
+    (define-key map "n"  'magit-stgit-new)
     (define-key map "k"  'magit-stgit-discard)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map "\r" 'magit-stgit-show)
+    (define-key map "s"  'magit-stgit-spill)
+    (define-key map "r"  'magit-stgit-rename)
+    (define-key map "c"  'magit-stgit-commit)
     map))
 
 (defun magit-insert-stgit-series ()
