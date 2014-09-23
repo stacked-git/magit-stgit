@@ -178,7 +178,7 @@
    (list (magit-stgit-read-patch "Refresh patch (default top)")))
   (if patch
       (magit-run-stgit "refresh" "-p" patch)
-    (magit-run-stgit "refresh")))
+    (magit-run-stgit "refresh" "-i")))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
