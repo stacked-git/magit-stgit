@@ -57,6 +57,7 @@
 (require 'cl-lib)
 
 (require 'magit)
+(require 'dash)
 
 ;;; Options
 ;;;; Variables
@@ -186,6 +187,82 @@ into the series."
         (magit-run-git-async "remote" "update" remote)
         (message "Updating remote...done"))
       (magit-run-stgit "rebase" (format "remotes/%s/%s" remote branch)))))
+
+
+;;;###autoload
+(defun magit-stgit-init ()
+  "Initialize StGit support for the current branch."
+  (interactive)
+  (magit-run-stgit "init"))
+
+;;;###autoload
+(defun magit-stgit-new (patch message)
+  "Create new StGit patch."
+  (interactive "sNew patch: \nsMessage: ")
+  (magit-run-stgit "new" "-m" message patch))
+
+;;;###autoload
+(defun magit-stgit-float (patch)
+  "Float StGit patch to the top of the stack."
+  (interactive (magit-stgit-read-args "Float patch"))
+  (magit-run-stgit "float" patch))
+
+;;;###autoload
+(defun magit-stgit-sink (patch target)
+  "Sink StGit patch down the stack."
+  ;; FIXME: This only works when the cursor is not on any patch.
+  ;; TODO:  Support marking of patches in the UI.
+  (interactive (-flatten (list (magit-stgit-read-args "Sink patch")
+                      (magit-stgit-read-args "Target patch"))))
+  (magit-run-stgit "sink" "-t" target patch))
+
+;;;###autoload
+(defun magit-stgit-pop ()
+  "Pop the topmost StGit patch from the stack."
+  (interactive)
+  (magit-run-stgit "pop"))
+
+;;;###autoload
+(defun magit-stgit-push ()
+  "Push a StGit patch to the stack."
+  (interactive)
+  (magit-run-stgit "push"))
+
+;;;###autoload
+(defun magit-stgit-undo ()
+  "Undo the last operation."
+  (interactive)
+  (magit-run-stgit "undo"))
+
+;;;###autoload
+(defun magit-stgit-redo ()
+  "Undo the last operation."
+  (interactive)
+  (magit-run-stgit "redo"))
+
+;; TODO: edit, squash, refresh -i, clean
+
+;; FIXME: this only commits the bottom-most patch, implement all the options
+;;;###autoload
+(defun magit-stgit-commit ()
+  "Permanently commit the applied patches."
+  (interactive)
+  (magit-run-stgit "commit"))
+
+(defun magit-stgit-rename (patch newpatch)
+  "Rename a patch."
+  (interactive (-flatten (list (magit-stgit-read-args "Patch to rename")
+                               (read-from-minibuffer "New name: "))))
+  (magit-run-stgit "rename" patch newpatch))
+
+
+
+;;;###autoload
+(defun magit-stgit-spill (patch)
+  "Discard a StGit patch, spill the diff."
+  (interactive (magit-stgit-read-args "Spill patch"))
+  (when (yes-or-no-p (format "Discard and spill patch `%s'? " patch))
+    (magit-run-stgit "delete" "--spill" patch)))
 
 ;;;###autoload
 (defun magit-stgit-discard (patch)
