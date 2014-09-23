@@ -340,12 +340,22 @@ into the series."
 
 (easy-menu-define magit-stgit-mode-menu nil "Magit-Stgit mode menu"
   '("StGit" :visible magit-stgit-mode
+    ["Initialize" magit-stgit-init
+     :help "Initialize StGit in the current branch"]
+    "---"
+    ["New patch" magit-stgit-new
+     :help "Create new patch"]
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
     ["Rebase series" magit-stgit-rebase
-     :help "Rebase an StGit patch series"]))
+     :help "Rebase an StGit patch series"]
+    "---"
+    ["Undo" magit-stgit-undo
+     :help "Undo the last operation"]
+    ["Redo" magit-stgit-redo
+     :help "Undo the last undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
