@@ -159,7 +159,17 @@
              (?k  "Discard" magit-stgit-discard)
              (?r  "Rebase"  magit-stgit-rebase)
              (?g  "Refresh" magit-stgit-refresh)
-             (?R  "Repair"  magit-stgit-repair)))
+             (?R  "Repair"  magit-stgit-repair)
+
+             (?i  "Init"    magit-stgit-init)
+             (?n  "New"     magit-stgit-new)
+             (?s  "Spill"   magit-stgit-spill)
+             (?p  "Pop"     magit-stgit-pop)
+             (?P  "Push"    magit-stgit-push)
+             (?u  "Undo"    magit-stgit-undo)
+             (?R  "Redo"    magit-stgit-redo)
+             (?c  "Commit"  magit-stgit-commit)
+             (?C  "Rename"  magit-stgit-rename)))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
