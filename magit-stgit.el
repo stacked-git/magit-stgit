@@ -281,7 +281,7 @@ into the series."
 (defun magit-stgit-show (patch)
   "Show diff of a StGit patch."
   (interactive (magit-stgit-read-args "Show patch"))
-  (magit-show-commit patch))
+  (magit-show-commit (magit-stgit-lines "id" patch)))
 
 ;;; Mode
 
