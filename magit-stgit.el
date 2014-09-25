@@ -76,9 +76,6 @@
   :group 'magit-stgit
   :type 'boolean)
 
-(defvar magit-stgit-patch-buffer-name "*magit-stgit-patch*"
-  "Name of buffer used to display a stgit patch.")
-
 (defcustom magit-stgit-mode-lighter " Stg"
   "Mode-line lighter for Magit-Stgit mode."
   :group 'magit-stgit
