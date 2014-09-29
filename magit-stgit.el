@@ -161,8 +161,9 @@
              (?p  "Pop"     magit-stgit-pop)
              (?P  "Push"    magit-stgit-push)
              (?u  "Undo"    magit-stgit-undo)
-             (?R  "Redo"    magit-stgit-redo)
+             (?X  "Redo"    magit-stgit-redo)
              (?c  "Commit"  magit-stgit-commit)
+             (?U  "Uncommit" magit-stgit-uncommit)
              (?C  "Rename"  magit-stgit-rename)))
 
 ;;;###autoload
@@ -259,10 +260,16 @@ into the series."
   (interactive)
   (magit-run-stgit "commit"))
 
+(defun magit-stgit-uncommit ()
+  "Turn Git commits into StGit patches."
+  (interactive)
+  (magit-run-stgit "uncommit"))
+
 (defun magit-stgit-rename (patch newpatch)
   "Rename a patch."
-  (interactive (-flatten (list (magit-stgit-read-args "Patch to rename")
-                               (read-from-minibuffer "New name: "))))
+  (interactive (let* ((orig (car (magit-stgit-read-args "Patch to rename")))
+                      (new (read-from-minibuffer (format "Rename '%s' to: " orig))))
+                 (list orig new)))
   (magit-run-stgit "rename" patch newpatch))
 
 
