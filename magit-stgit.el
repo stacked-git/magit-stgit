@@ -228,10 +228,9 @@ into the series."
 ;;;###autoload
 (defun magit-stgit-sink (patch target)
   "Sink StGit patch down the stack."
-  ;; FIXME: This only works when the cursor is not on any patch.
-  ;; TODO:  Support marking of patches in the UI.
-  (interactive (-flatten (list (magit-stgit-read-args "Sink patch")
-                      (magit-stgit-read-args "Target patch"))))
+  (interactive (let* ((patch (car (magit-stgit-read-args "Sink patch")))
+                      (target (magit-stgit-read-patch (format "Sink '%s' to" patch))))
+                 (list patch target)))
   (magit-run-stgit "sink" "-t" target patch))
 
 (defun magit-stgit-sink-1 (patch)
@@ -240,7 +239,7 @@ into the series."
   (let* ((series (magit-stgit-lines "series" "--noprefix"))
          (patch-position (-elem-index patch series)))
     (when (and patch-position (> patch-position 0))
-      (magit-run-stgit "sink" "-t" (elt series (1- patch-position)) patch))))
+      (magit-stgit-sink patch (elt series (1- patch-position))))))
 
 ;;;###autoload
 (defun magit-stgit-pop (patch)
