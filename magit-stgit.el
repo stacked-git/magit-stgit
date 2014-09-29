@@ -236,16 +236,16 @@ into the series."
       (magit-run-stgit "sink" "-t" (elt series (1- patch-position)) patch))))
 
 ;;;###autoload
-(defun magit-stgit-pop ()
+(defun magit-stgit-pop (patch)
   "Pop the topmost StGit patch from the stack."
-  (interactive)
-  (magit-run-stgit "pop"))
+  (interactive (magit-stgit-read-args "Pop patch"))
+  (magit-run-stgit "pop" patch))
 
 ;;;###autoload
-(defun magit-stgit-push ()
+(defun magit-stgit-push (patch)
   "Push a StGit patch to the stack."
-  (interactive)
-  (magit-run-stgit "push"))
+  (interactive (magit-stgit-read-args "Push patch"))
+  (magit-run-stgit "push" patch))
 
 ;;;###autoload
 (defun magit-stgit-undo ()
