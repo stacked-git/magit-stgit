@@ -257,7 +257,7 @@ into the series."
 
 (defun magit-insert-stgit-series ()
   (when magit-stgit-mode
-    (magit-insert-section (series)
+    (magit-insert-section (stgit-series)
       (magit-insert-heading "Patch series:")
       (let ((beg (point)))
         (process-file magit-stgit-executable nil (list t nil) nil
