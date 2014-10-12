@@ -248,7 +248,7 @@ into the series."
 (defconst magit-stgit-patch-re
   "^\\(.\\)\\([-+>!]\\) \\([^ ]+\\) +# \\(.*\\)$")
 
-(defvar magit-stgit-patch-map
+(defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "k"  'magit-stgit-discard)
     (define-key map "a"  'magit-stgit-goto)
