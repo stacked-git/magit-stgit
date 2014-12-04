@@ -57,6 +57,7 @@
 (require 'cl-lib)
 
 (require 'magit)
+(require 'dash)
 
 ;;; Options
 ;;;; Variables
@@ -152,7 +153,17 @@
              (?k  "Discard" magit-stgit-discard)
              (?r  "Rebase"  magit-stgit-rebase)
              (?g  "Refresh" magit-stgit-refresh)
-             (?R  "Repair"  magit-stgit-repair)))
+             (?R  "Repair"  magit-stgit-repair)
+
+             (?i  "Init"    magit-stgit-init)
+             (?n  "New"     magit-stgit-new)
+             (?s  "Spill"   magit-stgit-spill)
+             (?p  "Pop"     magit-stgit-pop)
+             (?P  "Push"    magit-stgit-push)
+             (?u  "Undo"    magit-stgit-undo)
+             (?R  "Redo"    magit-stgit-redo)
+             (?c  "Commit"  magit-stgit-commit)
+             (?C  "Rename"  magit-stgit-rename)))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -161,7 +172,7 @@
    (list (magit-stgit-read-patch "Refresh patch (default top)")))
   (if patch
       (magit-run-stgit "refresh" "-p" patch)
-    (magit-run-stgit "refresh")))
+    (magit-run-stgit "refresh" "-i")))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
@@ -186,6 +197,82 @@ into the series."
         (magit-run-git-async "remote" "update" remote)
         (message "Updating remote...done"))
       (magit-run-stgit "rebase" (format "remotes/%s/%s" remote branch)))))
+
+
+;;;###autoload
+(defun magit-stgit-init ()
+  "Initialize StGit support for the current branch."
+  (interactive)
+  (magit-run-stgit "init"))
+
+;;;###autoload
+(defun magit-stgit-new (patch message)
+  "Create new StGit patch."
+  (interactive "sNew patch: \nsMessage: ")
+  (magit-run-stgit "new" "-m" message patch))
+
+;;;###autoload
+(defun magit-stgit-float (patch)
+  "Float StGit patch to the top of the stack."
+  (interactive (magit-stgit-read-args "Float patch"))
+  (magit-run-stgit "float" patch))
+
+;;;###autoload
+(defun magit-stgit-sink (patch target)
+  "Sink StGit patch down the stack."
+  ;; FIXME: This only works when the cursor is not on any patch.
+  ;; TODO:  Support marking of patches in the UI.
+  (interactive (-flatten (list (magit-stgit-read-args "Sink patch")
+                      (magit-stgit-read-args "Target patch"))))
+  (magit-run-stgit "sink" "-t" target patch))
+
+;;;###autoload
+(defun magit-stgit-pop ()
+  "Pop the topmost StGit patch from the stack."
+  (interactive)
+  (magit-run-stgit "pop"))
+
+;;;###autoload
+(defun magit-stgit-push ()
+  "Push a StGit patch to the stack."
+  (interactive)
+  (magit-run-stgit "push"))
+
+;;;###autoload
+(defun magit-stgit-undo ()
+  "Undo the last operation."
+  (interactive)
+  (magit-run-stgit "undo"))
+
+;;;###autoload
+(defun magit-stgit-redo ()
+  "Undo the last operation."
+  (interactive)
+  (magit-run-stgit "redo"))
+
+;; TODO: edit, squash, refresh -i, clean
+
+;; FIXME: this only commits the bottom-most patch, implement all the options
+;;;###autoload
+(defun magit-stgit-commit ()
+  "Permanently commit the applied patches."
+  (interactive)
+  (magit-run-stgit "commit"))
+
+(defun magit-stgit-rename (patch newpatch)
+  "Rename a patch."
+  (interactive (-flatten (list (magit-stgit-read-args "Patch to rename")
+                               (read-from-minibuffer "New name: "))))
+  (magit-run-stgit "rename" patch newpatch))
+
+
+
+;;;###autoload
+(defun magit-stgit-spill (patch)
+  "Discard a StGit patch, spill the diff."
+  (interactive (magit-stgit-read-args "Spill patch"))
+  (when (yes-or-no-p (format "Discard and spill patch `%s'? " patch))
+    (magit-run-stgit "delete" "--spill" patch)))
 
 ;;;###autoload
 (defun magit-stgit-discard (patch)
@@ -234,12 +321,22 @@ into the series."
 
 (easy-menu-define magit-stgit-mode-menu nil "Magit-Stgit mode menu"
   '("StGit" :visible magit-stgit-mode
+    ["Initialize" magit-stgit-init
+     :help "Initialize StGit in the current branch"]
+    "---"
+    ["New patch" magit-stgit-new
+     :help "Create new patch"]
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
     ["Rebase series" magit-stgit-rebase
-     :help "Rebase an StGit patch series"]))
+     :help "Rebase an StGit patch series"]
+    "---"
+    ["Undo" magit-stgit-undo
+     :help "Undo the last operation"]
+    ["Redo" magit-stgit-redo
+     :help "Undo the last undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
@@ -250,9 +347,13 @@ into the series."
 
 (defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
+    (define-key map "n"  'magit-stgit-new)
     (define-key map "k"  'magit-stgit-discard)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map "\r" 'magit-stgit-show)
+    (define-key map "s"  'magit-stgit-spill)
+    (define-key map "r"  'magit-stgit-rename)
+    (define-key map "c"  'magit-stgit-commit)
     map))
 
 (defun magit-insert-stgit-series ()
