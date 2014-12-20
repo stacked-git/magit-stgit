@@ -170,7 +170,12 @@
              (?X  "Redo"      magit-stgit-redo-popup)
              (?c  "Commit"    magit-stgit-commit-popup)
              (?U  "Uncommit"  magit-stgit-uncommit-popup)
-             (?C  "Rename"    magit-stgit-rename)))
+             (?C  "Rename"    magit-stgit-rename)
+
+             (?S  "Sink"      magit-stgit-sink-popup)
+             (?F  "Float"     magit-stgit-float-popup)
+             (?h  "Hide"      magit-stgit-hide)
+             (?H  "Unhide"    magit-stgit-unhide)))
 
 (magit-define-popup magit-stgit-undo-popup
   "Popup console for StGit 'undo' command."
@@ -255,6 +260,20 @@
               (?m "Check for patches merged upstream" "--merged"))
   :options '((?n "Push N patches" "--number=" read-number)))
 
+(magit-define-popup magit-stgit-sink-popup
+  "Popup console for Stgit 'sink' command."
+  'magit-stgit-popup
+  :actions '((?s "Sink" magit-stgit-sink))
+  :switches '((?n "Do not push the patches back after rebase" "--nopush")
+              (?k "Keep the local changes" "--keep"))
+  :options '((?t "Sink patch below the target patch" "--to=" magit-stgit-read-patch)))
+
+(magit-define-popup magit-stgit-float-popup
+  "Popup console for Stgit 'float' command."
+  'magit-stgit-popup
+  :actions '((?f "Float" magit-stgit-float))
+  :switches '((?k "Keep the local changes" "--keep")))
+
 (defun magit-stgit-run-refresh (&rest args)
   (magit-run-stgit "refresh" args))
 
@@ -312,15 +331,13 @@ into the series."
 (defun magit-stgit-float (patch)
   "Float StGit patch to the top of the stack."
   (interactive (magit-stgit-read-args "Float patch"))
-  (magit-run-stgit "float" patch))
+  (magit-run-stgit "float" magit-current-popup-args patch))
 
 ;;;###autoload
-(defun magit-stgit-sink (patch target)
+(defun magit-stgit-sink (patch)
   "Sink StGit patch down the stack."
-  (interactive (let* ((patch (car (magit-stgit-read-args "Sink patch")))
-                      (target (magit-stgit-read-patch (format "Sink '%s' to" patch))))
-                 (list patch target)))
-  (magit-run-stgit "sink" "-t" target patch))
+  (interactive (magit-stgit-read-args "Sink patch"))
+  (magit-run-stgit "sink" magit-current-popup-args patch))
 
 (defun magit-stgit-sink-1 (patch)
   "Sink StGit patch one position down the stack."
@@ -328,7 +345,7 @@ into the series."
   (let* ((series (magit-stgit-lines "series" "--noprefix"))
          (patch-position (-elem-index patch series)))
     (when (and patch-position (> patch-position 0))
-      (magit-stgit-sink patch (elt series (1- patch-position))))))
+      (magit-run-stgit "sink" "-t" (elt series (1- patch-position)) patch))))
 
 ;;;###autoload
 (defun magit-stgit-pop (patch)
@@ -412,6 +429,16 @@ into the series."
   (interactive (magit-stgit-read-args "Show patch"))
   (magit-show-commit (magit-stgit-lines "id" patch)))
 
+(defun magit-stgit-hide (patch)
+  "Hide a StGit patch."
+  (interactive (magit-stgit-read-args "Hide patch"))
+  (magit-run-stgit "hide" patch))
+
+(defun magit-stgit-unhide (patch)
+  "Unhide a StGit patch."
+  (interactive (magit-stgit-read-args "Unhide patch"))
+  (magit-run-stgit "unhide" patch))
+
 ;;; Mode
 
 (defvar magit-stgit-mode-map
@@ -476,6 +503,8 @@ into the series."
     (define-key map "S"  'magit-stgit-sink-1)
     (define-key map "F"  'magit-stgit-float)
     (define-key map "f"  'magit-stgit-quick-refresh)
+    (define-key map "h"  'magit-stgit-hide)
+    (define-key map "u"  'magit-stgit-unhide)
     map))
 
 (defun magit-insert-stgit-series ()
