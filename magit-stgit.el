@@ -152,7 +152,7 @@
 
 (defun magit-stgit-read-patchnames (prompt)
   "Return list of marked patches, or patch at point, or PROMPT for patch name."
-  (list (or magit-stgit-marked-patches
+  (list (or (magit-stgit-marked-or-selected-patches)
             (magit-section-when stgit-patch)
             (magit-stgit-read-patch prompt t))))
 
@@ -198,6 +198,15 @@
   (if (member patch magit-stgit-marked-patches)
       (magit-stgit-unmark patch)
     (magit-stgit-mark patch)))
+
+(defun magit-stgit-marked-or-selected-patches ()
+  "Return list of patches marked for action.
+
+Return the patches inside active region, or, when there's no
+active region, return any marked patches."
+  (or (magit-region-values 'stgit-patch)
+      (let ((series (magit-stgit-lines "series" "--noprefix")))
+        (-filter (lambda (p) (member p magit-stgit-marked-patches)) series))))
 
 ;;; Commands
 
@@ -441,9 +450,10 @@ into the series."
 (defun magit-stgit-commit ()
   "Permanently commit the applied patches."
   (interactive)
-  (if magit-stgit-marked-patches
-      (magit-stgit-run-commit "--" magit-stgit-marked-patches)
-    (magit-stgit-run-commit magit-current-popup-args)))
+  (let ((marked-patches (magit-stgit-marked-or-selected-patches)))
+    (if marked-patches
+        (magit-stgit-run-commit "--" marked-patches)
+      (magit-stgit-run-commit magit-current-popup-args))))
 
 (defun magit-stgit-uncommit ()
   "Turn Git commits into StGit patches."
