@@ -150,6 +150,49 @@
   (list (or (magit-section-when stgit-patch)
             (magit-stgit-read-patch prompt t))))
 
+;;; Marking
+
+;; don't use this variable directly, use the utilities provided below instead
+(defvar-local magit-stgit-marked-patches nil
+  "List of marked patches.")
+
+(defun magit-stgit-clean-marks ()
+  "De-list marked patches after they have been removed from the series."
+  (let* ((series-section (magit-get-section '((series) (status))))
+         (patch-sections (magit-section-children series-section))
+         (series (-map #'magit-section-value patch-sections)))
+
+    (setq magit-stgit-marked-patches
+          (-filter (lambda (marked) (member marked series))
+                   magit-stgit-marked-patches))))
+
+(defun magit-stgit-remove-marks (patches)
+  "De-list marked PATCHES after an action has been executed on them."
+  (setq magit-stgit-marked-patches
+        (-remove (lambda (p) (member p patches)) magit-stgit-marked-patches)))
+
+(defun magit-stgit-mark (patch)
+  "Mark patch under cursor, or given PATCH when outside of the series section."
+  (interactive (magit-stgit-read-args "Mark patch"))
+  (add-to-list 'magit-stgit-marked-patches patch)
+  (forward-line)
+  (magit-refresh))
+
+(defun magit-stgit-unmark (patch)
+  "Unmark patch under cursor, or given PATCH when outside of the series section."
+  (interactive (magit-stgit-read-args "Unmark patch"))
+  (setq magit-stgit-marked-patches
+        (delete patch magit-stgit-marked-patches))
+  (forward-line)
+  (magit-refresh))
+
+(defun magit-stgit-toggle (patch)
+  "Toggle mark on patch under cursor, or given PATCH when outside of the series section."
+  (interactive (magit-stgit-read-args "Toggle mark on patch"))
+  (if (member patch magit-stgit-marked-patches)
+      (magit-stgit-unmark patch)
+    (magit-stgit-mark patch)))
+
 ;;; Commands
 
 (magit-define-popup magit-stgit-popup
@@ -505,6 +548,7 @@ into the series."
     (define-key map "f"  'magit-stgit-quick-refresh)
     (define-key map "h"  'magit-stgit-hide)
     (define-key map "u"  'magit-stgit-unhide)
+    (define-key map "t"  'magit-stgit-toggle)
     map))
 
 (defun magit-insert-stgit-series ()
@@ -533,6 +577,9 @@ into the series."
                                 ((equal state "!") 'magit-stgit-hidden)
                                 (t (user-error "Unknown stgit patch state: %s"
                                                state)))))
+
+          (magit-insert
+           (if (member patch magit-stgit-marked-patches) "#" " "))
           (magit-insert state patch-face)
           (magit-insert empty 'magit-stgit-empty ?\s)
           (when magit-stgit-show-patch-name
