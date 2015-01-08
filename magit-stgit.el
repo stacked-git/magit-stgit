@@ -166,7 +166,8 @@
              (?g  "Refresh" magit-stgit-refresh)
              (?r  "Repair"  magit-stgit-repair)
              (?R  "Rebase"  magit-stgit-rebase)
-             (?z  "Undo"    magit-stgit-undo)))
+             (?z  "Undo"    magit-stgit-undo)
+             (?Z  "Redo"    magit-stgit-redo)))
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -264,6 +265,12 @@ into the series."
   (interactive)
   (magit-run-stgit "undo"))
 
+;;;###autoload
+(defun magit-stgit-redo ()
+  "Undo the last undo operation."
+  (interactive)
+  (magit-run-stgit "redo"))
+
 ;;; Mode
 
 (defvar magit-stgit-mode-map
@@ -308,7 +315,9 @@ into the series."
      :help "Rebase an StGit patch series"]
     "---"
     ["Undo the last operation" magit-stgit-undo
-     :help "Undo the last operation"]))
+     :help "Undo the last operation"]
+    ["Undo the last undo operation" magit-stgit-redo
+     :help "Undo the last undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
