@@ -157,18 +157,19 @@
 (magit-define-popup magit-stgit-popup
   "Popup console for StGit commands."
   'magit-popups
-  :actions '((?i  "Init"    magit-stgit-init)
-             (?f  "Float"   magit-stgit-float)
-             (?s  "Sink"    magit-stgit-sink)
-             (?\r "Show"    magit-stgit-show)
-             (?a  "Goto"    magit-stgit-goto)
-             (?k  "Discard" magit-stgit-discard)
-             (?c  "Commit"  magit-stgit-commit-popup)
-             (?g  "Refresh" magit-stgit-refresh)
-             (?r  "Repair"  magit-stgit-repair)
-             (?R  "Rebase"  magit-stgit-rebase)
-             (?z  "Undo"    magit-stgit-undo)
-             (?Z  "Redo"    magit-stgit-redo)))
+  :actions '((?i  "Init"     magit-stgit-init)
+             (?f  "Float"    magit-stgit-float)
+             (?s  "Sink"     magit-stgit-sink)
+             (?\r "Show"     magit-stgit-show)
+             (?a  "Goto"     magit-stgit-goto)
+             (?k  "Discard"  magit-stgit-discard)
+             (?c  "Commit"   magit-stgit-commit-popup)
+             (?C  "Uncommit" magit-stgit-uncommit-popup)
+             (?g  "Refresh"  magit-stgit-refresh)
+             (?r  "Repair"   magit-stgit-repair)
+             (?R  "Rebase"   magit-stgit-rebase)
+             (?z  "Undo"     magit-stgit-undo)
+             (?Z  "Redo"     magit-stgit-redo)))
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -211,6 +212,19 @@ If TARGET is not specified, sink PATCH to the bottom of the stack."
   "Permanently store the applied patches into the stack base."
   (interactive (-flatten (list (magit-stgit-commit-arguments))))
   (apply #'magit-run-stgit "commit" args))
+
+(magit-define-popup magit-stgit-uncommit-popup
+  "Popup console for StGit uncommit."
+  'magit-popups
+  :options  '((?n "Uncommit the specified number of commits" "--num=" read-number))
+  :actions  '((?C  "Uncommit"  magit-stgit-uncommit))
+  :default-action #'magit-stgit-uncommit)
+
+;;;###autoload
+(defun magit-stgit-uncommit (&rest args)
+  "Turn regular commits into StGit patches."
+  (interactive (-flatten (list (magit-stgit-uncommit-arguments))))
+  (apply #'magit-run-stgit "uncommit" args))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -324,6 +338,8 @@ into the series."
     "---"
     ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
+    ["Uncommit patch" magit-stgit-uncommit
+     :help "Turn a regular commit into an StGit patch"]
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
