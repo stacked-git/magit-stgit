@@ -159,6 +159,7 @@
   'magit-popups
   :actions '((?i  "Init"    magit-stgit-init)
              (?f  "Float"   magit-stgit-float)
+             (?s  "Sink"    magit-stgit-sink)
              (?\r "Show"    magit-stgit-show)
              (?a  "Goto"    magit-stgit-goto)
              (?k  "Discard" magit-stgit-discard)
@@ -179,6 +180,20 @@
    (list (or (magit-stgit-read-patch "Float patch")
              (user-error "No patch selected"))))
   (magit-run-stgit "float" patch))
+
+;;;###autoload
+(defun magit-stgit-sink (patch &optional target)
+  "Sink StGit PATCH deeper down the stack.
+If TARGET is not specified, sink PATCH to the bottom of the stack."
+  (interactive
+   (list (or (magit-stgit-read-patch "Sink patch")
+             (user-error "No patch selected"))
+         (magit-stgit-read-patch "Target patch")))
+  (let ((args (list patch)))
+    (when target
+      (add-to-list 'args "-t" t)
+      (add-to-list 'args target t))
+    (apply #'magit-run-stgit "sink" args)))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -275,6 +290,8 @@ into the series."
     "---"
     ["Float patch" magit-stgit-float
      :help "Float StGit patch to the top"]
+    ["Sink patch" magit-stgit-sink
+     :help "Sink StGit patch deeper down the stack"]
     "---"
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
