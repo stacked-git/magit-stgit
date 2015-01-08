@@ -163,6 +163,7 @@
              (?\r "Show"    magit-stgit-show)
              (?a  "Goto"    magit-stgit-goto)
              (?k  "Discard" magit-stgit-discard)
+             (?c  "Commit"  magit-stgit-commit-popup)
              (?g  "Refresh" magit-stgit-refresh)
              (?r  "Repair"  magit-stgit-repair)
              (?R  "Rebase"  magit-stgit-rebase)
@@ -196,6 +197,20 @@ If TARGET is not specified, sink PATCH to the bottom of the stack."
       (add-to-list 'args "-t" t)
       (add-to-list 'args target t))
     (apply #'magit-run-stgit "sink" args)))
+
+(magit-define-popup magit-stgit-commit-popup
+  "Popup console for StGit commit."
+  'magit-popups
+  :switches '((?a "Commit all applied patches" "--all"))
+  :options  '((?n "Commit the specified number of patches" "--number=" read-number))
+  :actions  '((?c  "Commit"  magit-stgit-commit))
+  :default-action #'magit-stgit-commit)
+
+;;;###autoload
+(defun magit-stgit-commit (&rest args)
+  "Permanently store the applied patches into the stack base."
+  (interactive (-flatten (list (magit-stgit-commit-arguments))))
+  (apply #'magit-run-stgit "commit" args))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -307,6 +322,8 @@ into the series."
     ["Sink patch" magit-stgit-sink
      :help "Sink StGit patch deeper down the stack"]
     "---"
+    ["Commit patch" magit-stgit-commit
+     :help "Permanently store the base patch into the stack base"]
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
