@@ -157,12 +157,19 @@
 (magit-define-popup magit-stgit-popup
   "Popup console for StGit commands."
   'magit-popups
-  :actions '((?\r "Show"    magit-stgit-show)
+  :actions '((?i  "Init"    magit-stgit-init)
+             (?\r "Show"    magit-stgit-show)
              (?a  "Goto"    magit-stgit-goto)
              (?k  "Discard" magit-stgit-discard)
              (?r  "Rebase"  magit-stgit-rebase)
              (?g  "Refresh" magit-stgit-refresh)
              (?R  "Repair"  magit-stgit-repair)))
+
+;;;###autoload
+(defun magit-stgit-init ()
+  "Initialize StGit support for the current branch."
+  (interactive)
+  (magit-run-stgit "init"))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -254,6 +261,9 @@ into the series."
 
 (easy-menu-define magit-stgit-mode-menu nil "Magit-Stgit mode menu"
   '("StGit" :visible magit-stgit-mode
+    ["Initialize" magit-stgit-init
+     :help "Initialize StGit support for the current branch"]
+    "---"
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
