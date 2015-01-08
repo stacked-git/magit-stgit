@@ -158,6 +158,7 @@
   "Popup console for StGit commands."
   'magit-popups
   :actions '((?i  "Init"     magit-stgit-init)
+             (?N  "New"      magit-stgit-new)
              (?f  "Float"    magit-stgit-float)
              (?s  "Sink"     magit-stgit-sink)
              (?n  "Rename"   magit-stgit-rename)
@@ -177,6 +178,24 @@
   "Initialize StGit support for the current branch."
   (interactive)
   (magit-run-stgit "init"))
+
+(defvar magit-stgit-new-filename-regexp ".stgit-new.txt")
+
+(defun magit-stgit-new-check-buffer ()
+  (and buffer-file-name
+       (string-match-p magit-stgit-new-filename-regexp buffer-file-name)
+       (git-commit-setup)))
+
+;;;###autoload
+(defun magit-stgit-new (&rest args)
+  "ARGS."
+  (interactive)
+  (with-editor "GIT_EDITOR"
+    (let ((magit-process-popup-time -1))
+      (message "Running %s %s" magit-git-executable
+               (mapconcat 'identity (-flatten args) " "))
+      (apply #'magit-start-process magit-stgit-executable nil
+             (list "new")))))
 
 ;;;###autoload
 (defun magit-stgit-float (patch)
@@ -340,11 +359,14 @@ into the series."
   (unless (derived-mode-p 'magit-mode)
     (user-error "This mode only makes sense with Magit"))
   (if magit-stgit-mode
-      (magit-add-section-hook 'magit-status-sections-hook
-                              'magit-insert-stgit-series
-                              'magit-insert-stashes t t)
+      (progn
+        (magit-add-section-hook 'magit-status-sections-hook
+                                'magit-insert-stgit-series
+                                'magit-insert-stashes t t)
+        (add-hook 'find-file-hook #'magit-stgit-new-check-buffer))
     (remove-hook 'magit-status-sections-hook
-                 'magit-insert-stgit-series t))
+                 'magit-insert-stgit-series t)
+    (remove-hook 'find-file-hook #'magit-stgit-new-check-buffer))
   (when (called-interactively-p 'any)
     (magit-refresh)))
 
@@ -356,6 +378,8 @@ into the series."
     ["Initialize" magit-stgit-init
      :help "Initialize StGit support for the current branch"]
     "---"
+    ["Create new patch" magit-stgit-new
+     :help "Create a new StGit patch"]
     ["Float patch" magit-stgit-float
      :help "Float StGit patch to the top"]
     ["Sink patch" magit-stgit-sink
