@@ -387,11 +387,11 @@ into the series."
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
-    ["Commit patch" magit-stgit-commit
+    ["Commit patch" magit-stgit-commit-popup
      :help "Permanently store the base patch into the stack base"]
-    ["Uncommit patch" magit-stgit-uncommit
+    ["Uncommit patch" magit-stgit-uncommit-popup
      :help "Turn a regular commit into an StGit patch"]
-    ["Delete patch" magit-stgit-delete
+    ["Delete patch" magit-stgit-delete-popup
      :help "Delete an StGit patch"]
     "---"
     ["Float patch" magit-stgit-float
