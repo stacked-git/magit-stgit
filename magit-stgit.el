@@ -163,7 +163,7 @@
              (?n  "Rename"   magit-stgit-rename)
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto)
-             (?k  "Delete"   magit-stgit-delete)
+             (?k  "Delete"   magit-stgit-delete-popup)
              (?c  "Commit"   magit-stgit-commit-popup)
              (?C  "Uncommit" magit-stgit-uncommit-popup)
              (?g  "Refresh"  magit-stgit-refresh)
@@ -279,12 +279,27 @@ into the series."
         (message "Updating remote...done"))
       (magit-run-stgit "rebase" (format "remotes/%s/%s" remote branch)))))
 
+(magit-define-popup magit-stgit-delete-popup
+  "Popup console for StGit delete."
+  'magit-popups
+  :switches '((?s "Spill patch contents to worktree and index" "--spill"))
+  :actions  '((?k  "Delete"  magit-stgit-delete))
+  :default-action #'magit-stgit-delete)
+
 ;;;###autoload
-(defun magit-stgit-delete (patch)
-  "Delete a StGit patch."
-  (interactive (magit-stgit-read-args "Delete patch"))
-  (when (yes-or-no-p (format "Delete patch `%s'? " patch))
-    (magit-run-stgit "delete" patch)))
+(defun magit-stgit-delete (patch &optional spill)
+  "Delete StGit PATCH."
+  (interactive (-flatten
+                (list (magit-stgit-read-args "Delete patch")
+                      (or (magit-stgit-delete-arguments)
+                          (and (not magit-current-popup)
+                               (y-or-n-p "Spill contents? ") t)))))
+  (when spill
+    (setq spill (list "--spill")))
+  (when (yes-or-no-p (format "Delete%s patch `%s'? "
+                             (if spill " and spill" "")
+                             patch))
+    (apply #'magit-run-stgit "delete" patch spill)))
 
 ;;;###autoload
 (defun magit-stgit-goto (patch)
