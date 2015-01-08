@@ -158,6 +158,7 @@
   "Popup console for StGit commands."
   'magit-popups
   :actions '((?i  "Init"    magit-stgit-init)
+             (?f  "Float"   magit-stgit-float)
              (?\r "Show"    magit-stgit-show)
              (?a  "Goto"    magit-stgit-goto)
              (?k  "Discard" magit-stgit-discard)
@@ -170,6 +171,14 @@
   "Initialize StGit support for the current branch."
   (interactive)
   (magit-run-stgit "init"))
+
+;;;###autoload
+(defun magit-stgit-float (patch)
+  "Float StGit PATCH to the top."
+  (interactive
+   (list (or (magit-stgit-read-patch "Float patch")
+             (user-error "No patch selected"))))
+  (magit-run-stgit "float" patch))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -263,6 +272,9 @@ into the series."
   '("StGit" :visible magit-stgit-mode
     ["Initialize" magit-stgit-init
      :help "Initialize StGit support for the current branch"]
+    "---"
+    ["Float patch" magit-stgit-float
+     :help "Float StGit patch to the top"]
     "---"
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
