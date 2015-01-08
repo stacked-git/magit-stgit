@@ -158,18 +158,23 @@
   "Popup console for StGit commands."
   'magit-popups
   :actions '((?i  "Init"     magit-stgit-init)
+             ;;
              (?N  "New"      magit-stgit-new)
-             (?f  "Float"    magit-stgit-float)
-             (?s  "Sink"     magit-stgit-sink)
              (?n  "Rename"   magit-stgit-rename)
-             (?\r "Show"     magit-stgit-show)
-             (?a  "Goto"     magit-stgit-goto)
-             (?k  "Delete"   magit-stgit-delete-popup)
              (?c  "Commit"   magit-stgit-commit-popup)
              (?C  "Uncommit" magit-stgit-uncommit-popup)
+             (?k  "Delete"   magit-stgit-delete-popup)
+             ;;
+             (?f  "Float"    magit-stgit-float)
+             (?s  "Sink"     magit-stgit-sink)
+             ;;
+             (?\r "Show"     magit-stgit-show)
+             (?a  "Goto"     magit-stgit-goto)
+             ;;
              (?g  "Refresh"  magit-stgit-refresh)
              (?r  "Repair"   magit-stgit-repair)
              (?R  "Rebase"   magit-stgit-rebase)
+             ;;
              (?z  "Undo"     magit-stgit-undo)
              (?Z  "Redo"     magit-stgit-redo)))
 
@@ -307,7 +312,7 @@ into the series."
 
 ;;;###autoload
 (defun magit-stgit-delete (patch &optional spill)
-  "Delete StGit PATCH."
+  "Delete an StGit PATCH."
   (interactive (-flatten
                 (list (magit-stgit-read-args "Delete patch")
                       (or (magit-stgit-delete-arguments)
@@ -380,17 +385,20 @@ into the series."
     "---"
     ["Create new patch" magit-stgit-new
      :help "Create a new StGit patch"]
-    ["Float patch" magit-stgit-float
-     :help "Float StGit patch to the top"]
-    ["Sink patch" magit-stgit-sink
-     :help "Sink StGit patch deeper down the stack"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
-    "---"
     ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
     ["Uncommit patch" magit-stgit-uncommit
      :help "Turn a regular commit into an StGit patch"]
+    ["Delete patch" magit-stgit-delete
+     :help "Delete an StGit patch"]
+    "---"
+    ["Float patch" magit-stgit-float
+     :help "Float StGit patch to the top"]
+    ["Sink patch" magit-stgit-sink
+     :help "Sink StGit patch deeper down the stack"]
+    "---"
     ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
