@@ -293,8 +293,8 @@ into the series."
 (defun magit-stgit-rebase ()
   "Rebase a StGit patch series."
   (interactive)
-  (let ((remote (magit-get-current-remote))
-        (branch (magit-get-current-branch)))
+  (let* ((branch (magit-get-current-branch))
+         (remote (magit-get-remote branch)))
     (if (not (and remote branch))
         (user-error "Branch has no upstream")
       (when (y-or-n-p "Update remote first? ")
