@@ -1,6 +1,6 @@
 ;;; magit-stgit.el --- StGit extension for Magit
 
-;; Copyright (C) 2011-2014  The Magit Project Developers
+;; Copyright (C) 2011-2015  The Magit Project Developers
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
 ;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
@@ -79,6 +79,16 @@
   "Mode-line lighter for Magit-Stgit mode."
   :group 'magit-stgit
   :type 'string)
+
+(defcustom magit-stgit-refresh-stage-only t
+  "Whether a patch is refreshed only with staged changes (or the worktree otherwise)."
+  :group 'magit-stgit
+  :type 'boolean)
+
+(defcustom magit-stgit-refresh-ask-to-stage magit-commit-ask-to-stage
+  "Whether to ask to stage everything when refreshing a patch and nothing is staged."
+  :group 'magit-stgit
+  :type 'boolean)
 
 ;;;; Faces
 
@@ -159,9 +169,19 @@
   "Refresh a StGit patch."
   (interactive
    (list (magit-stgit-read-patch "Refresh patch (default top)")))
-  (if patch
-      (magit-run-stgit "refresh" "-p" patch)
-    (magit-run-stgit "refresh")))
+  (let ((args '("refresh")))
+    (when magit-stgit-refresh-stage-only
+      (add-to-list 'args "-i" t)
+      (unless (magit-anything-staged-p)
+        (if magit-stgit-refresh-ask-to-stage
+            (if (y-or-n-p "Nothing staged.  Stage and refresh everything? ")
+                (magit-run-git "add" "-u" ".")
+              (user-error "Nothing staged"))
+          (user-error "Nothing staged"))))
+    (when patch
+      (add-to-list 'args "-p" t)
+      (add-to-list 'args patch t))
+    (apply #'magit-run-stgit args)))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
