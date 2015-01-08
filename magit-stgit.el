@@ -165,7 +165,8 @@
              (?k  "Discard" magit-stgit-discard)
              (?g  "Refresh" magit-stgit-refresh)
              (?r  "Repair"  magit-stgit-repair)
-             (?R  "Rebase"  magit-stgit-rebase)))
+             (?R  "Rebase"  magit-stgit-rebase)
+             (?z  "Undo"    magit-stgit-undo)))
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -257,6 +258,12 @@ into the series."
   (interactive (magit-stgit-read-args "Show patch"))
   (magit-show-commit (magit-stgit-lines "id" patch)))
 
+;;;###autoload
+(defun magit-stgit-undo ()
+  "Undo the last operation."
+  (interactive)
+  (magit-run-stgit "undo"))
+
 ;;; Mode
 
 (defvar magit-stgit-mode-map
@@ -298,7 +305,10 @@ into the series."
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
     ["Rebase series" magit-stgit-rebase
-     :help "Rebase an StGit patch series"]))
+     :help "Rebase an StGit patch series"]
+    "---"
+    ["Undo the last operation" magit-stgit-undo
+     :help "Undo the last operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
