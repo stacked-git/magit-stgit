@@ -162,9 +162,9 @@
              (?\r "Show"    magit-stgit-show)
              (?a  "Goto"    magit-stgit-goto)
              (?k  "Discard" magit-stgit-discard)
-             (?r  "Rebase"  magit-stgit-rebase)
              (?g  "Refresh" magit-stgit-refresh)
-             (?R  "Repair"  magit-stgit-repair)))
+             (?r  "Repair"  magit-stgit-repair)
+             (?R  "Rebase"  magit-stgit-rebase)))
 
 ;;;###autoload
 (defun magit-stgit-init ()
