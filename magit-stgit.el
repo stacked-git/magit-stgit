@@ -160,6 +160,7 @@
   :actions '((?i  "Init"     magit-stgit-init)
              (?f  "Float"    magit-stgit-float)
              (?s  "Sink"     magit-stgit-sink)
+             (?n  "Rename"   magit-stgit-rename)
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto)
              (?k  "Discard"  magit-stgit-discard)
@@ -184,6 +185,15 @@
    (list (or (magit-stgit-read-patch "Float patch")
              (user-error "No patch selected"))))
   (magit-run-stgit "float" patch))
+
+;;;###autoload
+(defun magit-stgit-rename (oldname newname)
+  "Rename StGit patch OLDNAME to NEWNAME."
+  (interactive
+   (list (or (magit-stgit-read-patch "Patch to rename")
+             (user-error "No patch selected"))
+         (read-from-minibuffer "New name: ")))
+  (magit-run-stgit "rename" oldname newname))
 
 ;;;###autoload
 (defun magit-stgit-sink (patch &optional target)
@@ -335,6 +345,8 @@ into the series."
      :help "Float StGit patch to the top"]
     ["Sink patch" magit-stgit-sink
      :help "Sink StGit patch deeper down the stack"]
+    ["Rename patch" magit-stgit-rename
+     :help "Rename a patch"]
     "---"
     ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
