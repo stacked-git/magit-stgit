@@ -163,7 +163,7 @@
              (?n  "Rename"   magit-stgit-rename)
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto)
-             (?k  "Discard"  magit-stgit-discard)
+             (?k  "Delete"   magit-stgit-delete)
              (?c  "Commit"   magit-stgit-commit-popup)
              (?C  "Uncommit" magit-stgit-uncommit-popup)
              (?g  "Refresh"  magit-stgit-refresh)
@@ -280,10 +280,10 @@ into the series."
       (magit-run-stgit "rebase" (format "remotes/%s/%s" remote branch)))))
 
 ;;;###autoload
-(defun magit-stgit-discard (patch)
-  "Discard a StGit patch."
-  (interactive (magit-stgit-read-args "Discard patch"))
-  (when (yes-or-no-p (format "Discard patch `%s'? " patch))
+(defun magit-stgit-delete (patch)
+  "Delete a StGit patch."
+  (interactive (magit-stgit-read-args "Delete patch"))
+  (when (yes-or-no-p (format "Delete patch `%s'? " patch))
     (magit-run-stgit "delete" patch)))
 
 ;;;###autoload
@@ -373,7 +373,7 @@ into the series."
 
 (defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "k"  'magit-stgit-discard)
+    (define-key map "k"  'magit-stgit-delete)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map "\r" 'magit-stgit-show)
     map))
