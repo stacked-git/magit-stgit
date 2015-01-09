@@ -311,7 +311,7 @@ Else, asks the user for a patch name."
   "Sink StGit PATCHES deeper down the stack.
 If TARGET is not specified, sink PATCHES to the bottom of the stack."
   (interactive (list (magit-stgit-read-patches t t "Sink patch")
-                     (magit-stgit-read-patch "Target patch")))
+                     (magit-stgit-read-patch "Target patch (default is bottom)")))
   (let (args)
     (when target
       (add-to-list 'args "-t" t)
