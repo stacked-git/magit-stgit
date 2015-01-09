@@ -319,13 +319,15 @@ Use ARGS to pass additional arguments."
   (interactive (-flatten
                 (list (magit-stgit-read-args "Delete patch")
                       (magit-stgit-delete-arguments))))
-  (when (and (not magit-current-popup)
+  (when (and (called-interactively-p 'any)
+             (not magit-current-popup)
              (y-or-n-p "Spill contents? "))
     (add-to-list 'args "--spill"))
   (let ((spill (member "--spill" args)))
-    (when (yes-or-no-p (format "Delete%s patch `%s'? "
-                               (if spill " and spill" "")
-                               patch))
+    (when (or (not (called-interactively-p 'any))
+              (yes-or-no-p (format "Delete%s patch `%s'? "
+                                   (if spill " and spill" "")
+                                   patch)))
       (apply #'magit-run-stgit "delete" patch spill))))
 
 ;;;###autoload
