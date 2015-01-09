@@ -135,7 +135,9 @@
 ;;; Utilities
 
 (defun magit-run-stgit (&rest args)
-  (apply #'magit-call-process magit-stgit-executable args)
+  "Run StGit command with given arguments.
+Any list in ARGS is flattened."
+  (apply #'magit-call-process magit-stgit-executable (-flatten args))
   (magit-refresh))
 
 (defun magit-stgit-lines (&rest args)
