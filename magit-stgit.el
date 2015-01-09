@@ -137,7 +137,14 @@
 (defun magit-run-stgit (&rest args)
   "Run StGit command with given arguments.
 Any list in ARGS is flattened."
+  (magit-run-stgit-callback (lambda ()) args))
+
+(defun magit-run-stgit-callback (callback &rest args)
+  "Run StGit command with given arguments.
+Function CALLBACK will be executed before refreshing the buffer.
+Any list in ARGS is flattened."
   (apply #'magit-call-process magit-stgit-executable (-flatten args))
+  (funcall callback)
   (magit-refresh))
 
 (defun magit-stgit-lines (&rest args)
