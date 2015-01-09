@@ -313,19 +313,20 @@ into the series."
   :default-action #'magit-stgit-delete)
 
 ;;;###autoload
-(defun magit-stgit-delete (patch &optional spill)
-  "Delete an StGit PATCH."
+(defun magit-stgit-delete (patch &rest args)
+  "Delete an StGit PATCH.
+Use ARGS to pass additional arguments."
   (interactive (-flatten
                 (list (magit-stgit-read-args "Delete patch")
-                      (or (magit-stgit-delete-arguments)
-                          (and (not magit-current-popup)
-                               (y-or-n-p "Spill contents? ") t)))))
-  (when spill
-    (setq spill (list "--spill")))
-  (when (yes-or-no-p (format "Delete%s patch `%s'? "
-                             (if spill " and spill" "")
-                             patch))
-    (apply #'magit-run-stgit "delete" patch spill)))
+                      (magit-stgit-delete-arguments))))
+  (when (and (not magit-current-popup)
+             (y-or-n-p "Spill contents? "))
+    (add-to-list 'args "--spill"))
+  (let ((spill (member "--spill" args)))
+    (when (yes-or-no-p (format "Delete%s patch `%s'? "
+                               (if spill " and spill" "")
+                               patch))
+      (apply #'magit-run-stgit "delete" patch spill))))
 
 ;;;###autoload
 (defun magit-stgit-goto (patch)
