@@ -156,6 +156,16 @@ Any list in ARGS is flattened."
   (list (or (magit-section-when stgit-patch)
             (magit-stgit-read-patch prompt t))))
 
+(defun magit-stgit-patches-sorted (patches)
+  "Return elements in PATCHES with the same partial order as the series."
+  (let ((original (magit-stgit-lines "series" "--noprefix"))
+        sorted)
+    (mapc (lambda (patch)
+            (when (member patch patches)
+              (add-to-list 'sorted patch t)))
+          original)
+    sorted))
+
 (defun magit-stgit-read-patches (use-marks use-point prompt)
   "Return list of selected patches.
 If there is an active region, return marked patches in it (if
@@ -172,7 +182,7 @@ PROMPT."
              intersection)
         region
         (and use-marks
-             magit-stgit-marked-patches)
+             (magit-stgit-patches-sorted magit-stgit-marked-patches))
         (list (or (and use-point (magit-section-when stgit-patch))
                   (and prompt (magit-stgit-read-patch prompt t)))))))
 
