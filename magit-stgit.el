@@ -291,12 +291,11 @@ Else, asks the user for a patch name."
              (list "new")))))
 
 ;;;###autoload
-(defun magit-stgit-float (patch)
-  "Float StGit PATCH to the top."
-  (interactive
-   (list (or (magit-stgit-read-patch "Float patch")
-             (user-error "No patch selected"))))
-  (magit-run-stgit "float" patch))
+(defun magit-stgit-float (patches)
+  "Float StGit PATCHES to the top."
+  (interactive (list (magit-stgit-read-patches t t "Float patch")))
+  (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
+                            "float" patches))
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
