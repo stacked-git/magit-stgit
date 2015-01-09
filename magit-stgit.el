@@ -372,22 +372,27 @@ into the series."
   :default-action #'magit-stgit-delete)
 
 ;;;###autoload
-(defun magit-stgit-delete (patch &rest args)
-  "Delete an StGit PATCH.
+(defun magit-stgit-delete (patches &rest args)
+  "Delete StGit patches.
+Argument PATCHES is a list of patchnames.
 Use ARGS to pass additional arguments."
-  (interactive (-flatten
-                (list (magit-stgit-read-args "Delete patch")
-                      (magit-stgit-delete-arguments))))
+  (interactive (list (magit-stgit-read-patches t "Delete patch")
+                     (magit-stgit-delete-arguments)))
   (when (and (called-interactively-p 'any)
              (not magit-current-popup)
              (y-or-n-p "Spill contents? "))
     (add-to-list 'args "--spill"))
-  (let ((spill (member "--spill" args)))
+  (let ((cleanup (car patches))
+        (patches (-flatten (list (cdr patches))))
+        (spill (member "--spill" args)))
+    (when spill
+      (setq spill (list "--spill")))
     (when (or (not (called-interactively-p 'any))
-              (yes-or-no-p (format "Delete%s patch `%s'? "
+              (yes-or-no-p (format "Delete%s patch%s %s? "
                                    (if spill " and spill" "")
-                                   patch)))
-      (apply #'magit-run-stgit "delete" patch spill))))
+                                   (if (> (length patches) 1) "es" "")
+                                   (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
+      (apply #'magit-run-stgit "delete" args "--" patches))))
 
 ;;;###autoload
 (defun magit-stgit-goto (patch)
