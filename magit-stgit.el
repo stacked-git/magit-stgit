@@ -156,6 +156,63 @@ Any list in ARGS is flattened."
   (list (or (magit-section-when stgit-patch)
             (magit-stgit-read-patch prompt t))))
 
+(defun magit-stgit-read-patches (use-point prompt)
+  "Return list of selected patches.
+If there is an active region, return marked patches in it, or all
+patches in the region if none is marked.
+Else, if some patches are marked, return these.
+Else, if USE-POINT, return the patch at point.
+Else, if PROMPT, ask the user for the name of a patch using PROMPT."
+  (let* ((region (magit-region-values 'stgit-patch))
+         (intersection (cl-intersection region magit-stgit-marked-patches
+                                        :test #'equal)))
+    (if intersection
+        (cons t intersection)
+      (if region
+          (cons nil region)
+        (if magit-stgit-marked-patches
+            (cons t magit-stgit-marked-patches)
+          (cons nil (or (and use-point (magit-section-when stgit-patch))
+                        (and prompt (magit-stgit-read-patch prompt t)))))))))
+
+;;; Marking
+
+(defvar-local magit-stgit-marked-patches nil
+  "Internal list of marked patches.")
+
+(defun magit-stgit-mark-contains (patch)
+  "Whether the given PATCH is marked."
+  (member patch magit-stgit-marked-patches))
+
+(defun magit-stgit-mark-add (patch)
+  "Set mark of patch.
+If given, PATCH specifies the patch name, otherwise uses the patch at point."
+  (interactive (magit-stgit-read-args "Patch name"))
+  (add-to-list 'magit-stgit-marked-patches patch)
+  (when (called-interactively-p 'any)
+    (forward-line)
+    (magit-refresh)))
+
+(defun magit-stgit-mark-remove (patch)
+  "Unset mark of patch.
+If given, PATCH specifies the patch name, otherwise uses the patch at point."
+  (interactive (magit-stgit-read-args "Patch name"))
+  (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches))
+  (when (called-interactively-p 'any)
+    (forward-line)
+    (magit-refresh)))
+
+(defun magit-stgit-mark-toggle (patch)
+  "Toggle mark of patch.
+If given, PATCH specifies the patch name, otherwise uses the patch at point."
+  (interactive (magit-stgit-read-args "Patch name"))
+  (if (magit-stgit-mark-contains patch)
+      (magit-stgit-mark-remove patch)
+    (magit-stgit-mark-add patch))
+  (when (called-interactively-p 'any)
+    (forward-line)
+    (magit-refresh)))
+
 ;;; Commands
 
 (magit-define-popup magit-stgit-popup
@@ -430,6 +487,7 @@ Use ARGS to pass additional arguments."
     (define-key map "k"  'magit-stgit-delete)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map "\r" 'magit-stgit-show)
+    (define-key map "#"  #'magit-stgit-mark-toggle)
     map))
 
 (defun magit-insert-stgit-series ()
@@ -452,6 +510,8 @@ Use ARGS to pass additional arguments."
     (magit-bind-match-strings (empty state patch msg) nil
       (delete-region (point) (point-at-eol))
       (magit-insert-section (stgit-patch patch)
+        (magit-insert
+         (if (magit-stgit-mark-contains patch) "#" " "))
         (magit-insert state (cond ((equal state ">") 'magit-stgit-current)
                                   ((equal state "+") 'magit-stgit-applied)
                                   ((equal state "-") 'magit-stgit-unapplied)
