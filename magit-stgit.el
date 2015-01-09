@@ -400,7 +400,8 @@ Use ARGS to pass additional arguments."
                                    (if spill " and spill" "")
                                    (if (> (length patches) 1) "es" "")
                                    (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
-      (apply #'magit-run-stgit "delete" args "--" patches))))
+      (apply #'magit-run-stgit "delete" args "--" patches)
+      (magit-stgit-mark-remove patches))))
 
 ;;;###autoload
 (defun magit-stgit-goto (patch)
