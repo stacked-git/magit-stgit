@@ -307,18 +307,17 @@ Else, asks the user for a patch name."
   (magit-run-stgit "rename" oldname newname))
 
 ;;;###autoload
-(defun magit-stgit-sink (patch &optional target)
-  "Sink StGit PATCH deeper down the stack.
-If TARGET is not specified, sink PATCH to the bottom of the stack."
-  (interactive
-   (list (or (magit-stgit-read-patch "Sink patch")
-             (user-error "No patch selected"))
-         (magit-stgit-read-patch "Target patch")))
-  (let ((args (list patch)))
+(defun magit-stgit-sink (patches &optional target)
+  "Sink StGit PATCHES deeper down the stack.
+If TARGET is not specified, sink PATCHES to the bottom of the stack."
+  (interactive (list (magit-stgit-read-patches t t "Sink patch")
+                     (magit-stgit-read-patch "Target patch")))
+  (let (args)
     (when target
       (add-to-list 'args "-t" t)
       (add-to-list 'args target t))
-    (apply #'magit-run-stgit "sink" args)))
+    (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
+           "sink" args "--" patches)))
 
 (magit-define-popup magit-stgit-commit-popup
   "Popup console for StGit commit."
