@@ -106,7 +106,9 @@
              '("^refs/patches/\\(.+\\)" magit-stgit-patch nil))
 
 (defface magit-stgit-current
-  '((t :inherit magit-hash))
+  '((((background dark)) (:weight bold :foreground "yellow"))
+    (((background light)) (:weight bold :foreground "purple"))
+    (t (:weight bold)))
   "Face for the current stgit patch."
   :group 'magit-stgit-faces)
 
