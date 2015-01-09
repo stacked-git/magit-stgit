@@ -156,24 +156,25 @@ Any list in ARGS is flattened."
   (list (or (magit-section-when stgit-patch)
             (magit-stgit-read-patch prompt t))))
 
-(defun magit-stgit-read-patches (use-point prompt)
+(defun magit-stgit-read-patches (use-marks use-point prompt)
   "Return list of selected patches.
-If there is an active region, return marked patches in it, or all
-patches in the region if none is marked.
-Else, if some patches are marked, return these.
+If there is an active region, return marked patches in it (if
+USE-MARKS), or all patches in the region if USE-MARKS is not set
+or none is marked.
+Else, if USE-MARKS and some patches are marked, return these.
 Else, if USE-POINT, return the patch at point.
-Else, if PROMPT, ask the user for the name of a patch using PROMPT."
+Else, if PROMPT, ask the user for the name of a patch using
+PROMPT."
   (let* ((region (magit-region-values 'stgit-patch))
          (intersection (cl-intersection region magit-stgit-marked-patches
                                         :test #'equal)))
-    (if intersection
-        (cons t intersection)
-      (if region
-          (cons nil region)
-        (if magit-stgit-marked-patches
-            (cons t magit-stgit-marked-patches)
-          (cons nil (or (and use-point (magit-section-when stgit-patch))
-                        (and prompt (magit-stgit-read-patch prompt t)))))))))
+    (or (and use-marks
+             intersection)
+        region
+        (and use-marks
+             magit-stgit-marked-patches)
+        (list (or (and use-point (magit-section-when stgit-patch))
+                  (and prompt (magit-stgit-read-patch prompt t)))))))
 
 ;;; Marking
 
@@ -184,31 +185,40 @@ Else, if PROMPT, ask the user for the name of a patch using PROMPT."
   "Whether the given PATCH is marked."
   (member patch magit-stgit-marked-patches))
 
-(defun magit-stgit-mark-add (patch)
-  "Set mark of patch.
-If given, PATCH specifies the patch name, otherwise uses the patch at point."
-  (interactive (magit-stgit-read-args "Patch name"))
-  (add-to-list 'magit-stgit-marked-patches patch)
+(defun magit-stgit-mark-add (patches)
+  "Set mark of patches.
+See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  (interactive (list (magit-stgit-read-patches nil t "Patch name")))
+  (mapc (lambda (patch)
+          (add-to-list 'magit-stgit-marked-patches patch))
+        patches)
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
-(defun magit-stgit-mark-remove (patch)
-  "Unset mark of patch.
-If given, PATCH specifies the patch name, otherwise uses the patch at point."
-  (interactive (magit-stgit-read-args "Patch name"))
-  (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches))
+(defun magit-stgit-mark-remove (patches)
+  "Unset mark of patches.
+See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  (interactive (list (magit-stgit-read-patches nil t "Patch name")))
+  (mapc (lambda (patch)
+          (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches)))
+        patches)
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
-(defun magit-stgit-mark-toggle (patch)
-  "Toggle mark of patch.
-If given, PATCH specifies the patch name, otherwise uses the patch at point."
-  (interactive (magit-stgit-read-args "Patch name"))
-  (if (magit-stgit-mark-contains patch)
-      (magit-stgit-mark-remove patch)
-    (magit-stgit-mark-add patch))
+(defun magit-stgit-mark-toggle (patches)
+  "Toggle mark of patches.
+If given, PATCHES specifies the patch names.
+Else, if there is an active region, toggles these.
+Else, if point is in an StGit section, toggles the patch at point.
+Else, asks the user for a patch name."
+  (interactive (list (magit-stgit-read-patches nil t "Patch name")))
+  (mapc (lambda (patch)
+          (if (magit-stgit-mark-contains patch)
+              (magit-stgit-mark-remove (list patch))
+            (magit-stgit-mark-add (list patch))))
+        patches)
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
@@ -376,15 +386,13 @@ into the series."
   "Delete StGit patches.
 Argument PATCHES is a list of patchnames.
 Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t "Delete patch")
+  (interactive (list (magit-stgit-read-patches t t "Delete patch")
                      (magit-stgit-delete-arguments)))
   (when (and (called-interactively-p 'any)
              (not magit-current-popup)
              (y-or-n-p "Spill contents? "))
     (add-to-list 'args "--spill"))
-  (let ((cleanup (car patches))
-        (patches (-flatten (list (cdr patches))))
-        (spill (member "--spill" args)))
+  (let ((spill (member "--spill" args)))
     (when spill
       (setq spill (list "--spill")))
     (when (or (not (called-interactively-p 'any))
