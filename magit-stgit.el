@@ -349,10 +349,12 @@ Use ARGS to pass additional arguments."
   :default-action #'magit-stgit-commit)
 
 ;;;###autoload
-(defun magit-stgit-commit (&rest args)
-  "Permanently store the applied patches into the stack base."
-  (interactive (-flatten (list (magit-stgit-commit-arguments))))
-  (apply #'magit-run-stgit "commit" args))
+(defun magit-stgit-commit (patches &rest args)
+  "Permanently store patches into the stack base."
+  (interactive (list (magit-stgit-read-patches t t nil)
+                     (magit-stgit-commit-arguments)))
+  (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
+         "commit" args "--" patches))
 
 (magit-define-popup magit-stgit-uncommit-popup
   "Popup console for StGit uncommit."
