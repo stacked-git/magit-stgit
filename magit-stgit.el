@@ -253,8 +253,8 @@ Else, asks the user for a patch name."
              (?C  "Uncommit" magit-stgit-uncommit-popup)
              (?k  "Delete"   magit-stgit-delete-popup)
              ;;
-             (?f  "Float"    magit-stgit-float)
              (?s  "Sink"     magit-stgit-sink)
+             (?f  "Float"    magit-stgit-float-popup)
              ;;
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto)
@@ -290,12 +290,21 @@ Else, asks the user for a patch name."
       (apply #'magit-start-process magit-stgit-executable nil
              (list "new")))))
 
+(magit-define-popup magit-stgit-float-popup
+  "Popup console for StGit float."
+  'magit-popups
+  :switches '((?k "Keep the local changes" "--keep"))
+  :actions  '((?f  "Float"  magit-stgit-float))
+  :default-action #'magit-stgit-float)
+
 ;;;###autoload
-(defun magit-stgit-float (patches)
-  "Float StGit PATCHES to the top."
-  (interactive (list (magit-stgit-read-patches t t "Float patch")))
+(defun magit-stgit-float (patches &rest args)
+  "Float StGit PATCHES to the top.
+Use ARGS to pass additional arguments."
+  (interactive (list (magit-stgit-read-patches t t "Float patch")
+                     (magit-stgit-float-arguments)))
   (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
-                            "float" patches))
+                            "float" args "--" patches))
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
