@@ -253,8 +253,8 @@ Else, asks the user for a patch name."
              (?C  "Uncommit" magit-stgit-uncommit-popup)
              (?k  "Delete"   magit-stgit-delete-popup)
              ;;
-             (?s  "Sink"     magit-stgit-sink)
              (?f  "Float"    magit-stgit-float-popup)
+             (?s  "Sink"     magit-stgit-sink-popup)
              ;;
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto)
@@ -315,18 +315,30 @@ Use ARGS to pass additional arguments."
          (read-from-minibuffer "New name: ")))
   (magit-run-stgit "rename" oldname newname))
 
+(magit-define-popup magit-stgit-sink-popup
+  "Popup console for StGit sink."
+  'magit-popups
+  :switches '((?k "Keep the local changes" "--keep"))
+  :options  '((?t "Sink patches below the target patch (else to bottom)"
+                  "--to="
+                  (lambda (prompt &optional default) (magit-stgit-read-patch prompt t))))
+  :actions  '((?s  "Sink"  magit-stgit-sink))
+  :default-action #'magit-stgit-float)
+
 ;;;###autoload
-(defun magit-stgit-sink (patches &optional target)
+(defun magit-stgit-sink (patches &rest args)
   "Sink StGit PATCHES deeper down the stack.
-If TARGET is not specified, sink PATCHES to the bottom of the stack."
+Use ARGS to pass additional arguments."
   (interactive (list (magit-stgit-read-patches t t "Sink patch")
-                     (magit-stgit-read-patch "Target patch (default is bottom)")))
-  (let (args)
-    (when target
-      (add-to-list 'args "-t" t)
-      (add-to-list 'args target t))
-    (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
-           "sink" args "--" patches)))
+                     (magit-stgit-sink-arguments)))
+  (when (and (called-interactively-p 'any)
+             (not magit-current-popup))
+    (let ((target (magit-stgit-read-patch "Target patch (default is bottom)")))
+      (when target
+        (add-to-list 'args "-t" t)
+        (add-to-list 'args target t))))
+  (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
+         "sink" args "--" patches))
 
 (magit-define-popup magit-stgit-commit-popup
   "Popup console for StGit commit."
