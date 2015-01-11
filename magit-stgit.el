@@ -183,7 +183,7 @@ Any list in ARGS is flattened."
           original)
     sorted))
 
-(defun magit-stgit-read-patches (use-region use-marks use-point prompt)
+(defun magit-stgit-read-patches (use-region use-marks use-point require-match prompt)
   "Return list of selected patches.
 If USE-REGION and there is an active region, return marked
 patches in it (if USE-MARKS), or all patches in the region if
@@ -201,7 +201,7 @@ PROMPT."
         (and use-marks
              (magit-stgit-patches-sorted magit-stgit-marked-patches))
         (list (or (and use-point (magit-section-when stgit-patch))
-                  (and prompt (magit-stgit-read-patch prompt t)))))))
+                  (and prompt (magit-stgit-read-patch prompt require-match)))))))
 
 ;;; Marking
 
@@ -215,7 +215,7 @@ PROMPT."
 (defun magit-stgit-mark-add (patches)
   "Set mark of patches.
 See `magit-stgit-mark-toggle' for the meaning of PATCHES."
-  (interactive (list (magit-stgit-read-patches t nil t "Patch name")))
+  (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
   (mapc (lambda (patch)
           (add-to-list 'magit-stgit-marked-patches patch))
         patches)
@@ -226,7 +226,7 @@ See `magit-stgit-mark-toggle' for the meaning of PATCHES."
 (defun magit-stgit-mark-remove (patches)
   "Unset mark of patches.
 See `magit-stgit-mark-toggle' for the meaning of PATCHES."
-  (interactive (list (magit-stgit-read-patches t nil t "Patch name")))
+  (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
   (mapc (lambda (patch)
           (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches)))
         patches)
@@ -240,7 +240,7 @@ If given, PATCHES specifies the patch names.
 Else, if there is an active region, toggles these.
 Else, if point is in an StGit section, toggles the patch at point.
 Else, asks the user for a patch name."
-  (interactive (list (magit-stgit-read-patches t nil t "Patch name")))
+  (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
   (mapc (lambda (patch)
           (if (magit-stgit-mark-contains patch)
               (magit-stgit-mark-remove (list patch))
@@ -317,7 +317,7 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-float (patches &rest args)
   "Float StGit PATCHES to the top.
 Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t "Float patch")
+  (interactive (list (magit-stgit-read-patches t t t t "Float patch")
                      (magit-stgit-float-arguments)))
   (magit-run-stgit-and-mark-remove patches "float" args "--" patches))
 
@@ -343,7 +343,7 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-sink (patches &rest args)
   "Sink StGit PATCHES deeper down the stack.
 Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t "Sink patch")
+  (interactive (list (magit-stgit-read-patches t t t t "Sink patch")
                      (magit-stgit-sink-arguments)))
   (when (and (called-interactively-p 'any)
              (not magit-current-popup))
@@ -364,7 +364,7 @@ Use ARGS to pass additional arguments."
 ;;;###autoload
 (defun magit-stgit-commit (patches &rest args)
   "Permanently store patches into the stack base."
-  (interactive (list (magit-stgit-read-patches t t t nil)
+  (interactive (list (magit-stgit-read-patches t t t t nil)
                      (magit-stgit-commit-arguments)))
   (magit-run-stgit-and-mark-remove patches "commit" args "--" patches))
 
@@ -436,7 +436,7 @@ into the series."
   "Delete StGit patches.
 Argument PATCHES is a list of patchnames.
 Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t "Delete patch")
+  (interactive (list (magit-stgit-read-patches t t t t "Delete patch")
                      (magit-stgit-delete-arguments)))
   (when (and (called-interactively-p 'any)
              (not magit-current-popup)
@@ -464,14 +464,14 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-goto (patch &rest args)
   "Set PATCH as target of StGit push and pop operations.
 Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t "Goto patch")
+  (interactive (list (magit-stgit-read-patches nil nil t t "Goto patch")
                      (magit-stgit-goto-arguments)))
   (magit-run-stgit "goto" patch args))
 
 ;;;###autoload
 (defun magit-stgit-show (patch)
   "Show diff of a StGit patch."
-  (interactive (magit-stgit-read-patches nil nil t "Show patch"))
+  (interactive (magit-stgit-read-patches nil nil t t "Show patch"))
   (magit-show-commit (magit-stgit-lines "id" patch)))
 
 (magit-define-popup magit-stgit-undo-popup
