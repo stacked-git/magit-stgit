@@ -306,8 +306,7 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-rename (oldname newname)
   "Rename StGit patch OLDNAME to NEWNAME."
   (interactive
-   (list (or (magit-stgit-read-patch "Patch to rename")
-             (user-error "No patch selected"))
+   (list (magit-stgit-read-patch "Patch to rename" t)
          (read-from-minibuffer "New name: ")))
   (magit-run-stgit "rename" oldname newname))
 
