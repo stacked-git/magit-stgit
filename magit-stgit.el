@@ -139,6 +139,11 @@
 Any list in ARGS is flattened."
   (magit-run-stgit-callback (lambda ()) args))
 
+(defun magit-run-stgit-and-mark-remove (patches &rest args)
+  "Run `magit-run-stgit' and `magit-stgit-mark-remove'.
+Argument PATCHES sets the marks to remove, and ARGS the arguments to StGit."
+  (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches)) args))
+
 (defun magit-run-stgit-callback (callback &rest args)
   "Run StGit command with given arguments.
 Function CALLBACK will be executed before refreshing the buffer.
@@ -299,8 +304,7 @@ Else, asks the user for a patch name."
 Use ARGS to pass additional arguments."
   (interactive (list (magit-stgit-read-patches t t t "Float patch")
                      (magit-stgit-float-arguments)))
-  (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
-                            "float" args "--" patches))
+  (magit-run-stgit-and-mark-remove patches "float" args "--" patches))
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
@@ -332,8 +336,7 @@ Use ARGS to pass additional arguments."
       (when target
         (add-to-list 'args "-t" t)
         (add-to-list 'args target t))))
-  (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
-         "sink" args "--" patches))
+  (magit-run-stgit-and-mark-remove patches "sink" args "--" patches))
 
 (magit-define-popup magit-stgit-commit-popup
   "Popup console for StGit commit."
@@ -348,8 +351,7 @@ Use ARGS to pass additional arguments."
   "Permanently store patches into the stack base."
   (interactive (list (magit-stgit-read-patches t t t nil)
                      (magit-stgit-commit-arguments)))
-  (apply #'magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches))
-         "commit" args "--" patches))
+  (magit-run-stgit-and-mark-remove patches "commit" args "--" patches))
 
 (magit-define-popup magit-stgit-uncommit-popup
   "Popup console for StGit uncommit."
@@ -433,8 +435,7 @@ Use ARGS to pass additional arguments."
                                    (if spill " and spill" "")
                                    (if (> (length patches) 1) "es" "")
                                    (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
-      (magit-run-stgit "delete" args "--" patches)
-      (magit-stgit-mark-remove patches))))
+      (magit-run-stgit-and-mark-remove patches "delete" args "--" patches))))
 
 ;;;###autoload
 (defun magit-stgit-goto (patch)
