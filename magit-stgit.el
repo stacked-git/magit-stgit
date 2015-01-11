@@ -276,13 +276,16 @@ Else, asks the user for a patch name."
 (defvar magit-stgit-new-filename-regexp ".stgit-new.txt")
 
 (defun magit-stgit-new-check-buffer ()
+  "Check if buffer is an StGit commit message."
+  ;; TODO: must remove the stray file on cancel
   (and buffer-file-name
        (string-match-p magit-stgit-new-filename-regexp buffer-file-name)
        (git-commit-setup)))
 
 ;;;###autoload
 (defun magit-stgit-new (&rest args)
-  "ARGS."
+  "Create a new StGit patch.
+Use ARGS to pass additional arguments."
   (interactive)
   (with-editor "GIT_EDITOR"
     (let ((magit-process-popup-time -1))
