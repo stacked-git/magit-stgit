@@ -248,7 +248,7 @@ Else, asks the user for a patch name."
   'magit-popups
   :actions '((?i  "Init"     magit-stgit-init)
              ;;
-             (?N  "New"      magit-stgit-new)
+             (?N  "New"      magit-stgit-new-popup)
              (?n  "Rename"   magit-stgit-rename)
              (?c  "Commit"   magit-stgit-commit-popup)
              (?C  "Uncommit" magit-stgit-uncommit-popup)
@@ -282,17 +282,25 @@ Else, asks the user for a patch name."
        (string-match-p magit-stgit-new-filename-regexp buffer-file-name)
        (git-commit-setup)))
 
+(magit-define-popup magit-stgit-new-popup
+  "Popup console for StGit new."
+  'magit-popups
+  :switches '((?a "Add \"Acked-by:\" line" "--ack")
+              (?s "Add \"Signed-off-by:\" line" "--sign"))
+  :actions  '((?N  "New"  magit-stgit-new))
+  :default-action #'magit-stgit-new)
+
 ;;;###autoload
 (defun magit-stgit-new (&rest args)
   "Create a new StGit patch.
 Use ARGS to pass additional arguments."
-  (interactive)
+  (interactive (magit-stgit-new-arguments))
   (with-editor "GIT_EDITOR"
     (let ((magit-process-popup-time -1))
       (message "Running %s %s" magit-git-executable
-               (mapconcat 'identity (-flatten args) " "))
+               (mapconcat 'identity (-flatten (list "new" args)) " "))
       (apply #'magit-start-process magit-stgit-executable nil
-             (list "new")))))
+             "new" args))))
 
 (magit-define-popup magit-stgit-float-popup
   "Popup console for StGit float."
