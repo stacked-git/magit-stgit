@@ -362,7 +362,7 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-uncommit (&rest args)
   "Turn regular commits into StGit patches."
   (interactive (-flatten (list (magit-stgit-uncommit-arguments))))
-  (apply #'magit-run-stgit "uncommit" args))
+  (magit-run-stgit "uncommit" args))
 
 ;;;###autoload
 (defun magit-stgit-refresh (&optional patch)
@@ -381,7 +381,7 @@ Use ARGS to pass additional arguments."
     (when patch
       (add-to-list 'args "-p" t)
       (add-to-list 'args patch t))
-    (apply #'magit-run-stgit args)))
+    (magit-run-stgit args)))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
@@ -433,7 +433,7 @@ Use ARGS to pass additional arguments."
                                    (if spill " and spill" "")
                                    (if (> (length patches) 1) "es" "")
                                    (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
-      (apply #'magit-run-stgit "delete" args "--" patches)
+      (magit-run-stgit "delete" args "--" patches)
       (magit-stgit-mark-remove patches))))
 
 ;;;###autoload
