@@ -258,7 +258,7 @@ Else, asks the user for a patch name."
              (?s  "Sink"     magit-stgit-sink-popup)
              ;;
              (?\r "Show"     magit-stgit-show)
-             (?a  "Goto"     magit-stgit-goto)
+             (?a  "Goto"     magit-stgit-goto-popup)
              ;;
              (?g  "Refresh"  magit-stgit-refresh)
              (?r  "Repair"   magit-stgit-repair)
@@ -448,11 +448,21 @@ Use ARGS to pass additional arguments."
                                    (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
       (magit-run-stgit-and-mark-remove patches "delete" args "--" patches))))
 
+(magit-define-popup magit-stgit-goto-popup
+  "Popup console for StGit goto."
+  'magit-popups
+  :switches '((?k "Keep the local changes"            "--keep")
+              (?m "Check for patches merged upstream" "--merged"))
+  :actions  '((?a  "Goto"  magit-stgit-goto))
+  :default-action #'magit-stgit-goto)
+
 ;;;###autoload
-(defun magit-stgit-goto (patch)
-  "Set PATCH as target of StGit push and pop operations."
-  (interactive (magit-stgit-read-patches nil nil t "Goto patch"))
-  (magit-run-stgit "goto" patch))
+(defun magit-stgit-goto (patch &rest args)
+  "Set PATCH as target of StGit push and pop operations.
+Use ARGS to pass additional arguments."
+  (interactive (list (magit-stgit-read-patches nil nil t "Goto patch")
+                     (magit-stgit-goto-arguments)))
+  (magit-run-stgit "goto" patch args))
 
 ;;;###autoload
 (defun magit-stgit-show (patch)
