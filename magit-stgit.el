@@ -264,7 +264,7 @@ Else, asks the user for a patch name."
              (?r  "Repair"   magit-stgit-repair)
              (?R  "Rebase"   magit-stgit-rebase)
              ;;
-             (?z  "Undo"     magit-stgit-undo)
+             (?z  "Undo"     magit-stgit-undo-popup)
              (?Z  "Redo"     magit-stgit-redo)))
 
 ;;;###autoload
@@ -452,11 +452,20 @@ Use ARGS to pass additional arguments."
   (interactive (magit-stgit-read-patches nil nil t "Show patch"))
   (magit-show-commit (magit-stgit-lines "id" patch)))
 
+(magit-define-popup magit-stgit-undo-popup
+  "Popup console for StGit undo."
+  'magit-popups
+  :options  '((?n "Undo the last N commands" "--number=" read-number))
+  :switches '((?h "Discard changes in index/worktree" "--hard"))
+  :actions  '((?z  "Undo"  magit-stgit-undo))
+  :default-action #'magit-stgit-undo)
+
 ;;;###autoload
-(defun magit-stgit-undo ()
-  "Undo the last operation."
-  (interactive)
-  (magit-run-stgit "undo"))
+(defun magit-stgit-undo (&rest args)
+  "Undo the last operation.
+Use ARGS to pass additional arguments."
+  (interactive (magit-stgit-undo-arguments))
+  (magit-run-stgit "undo" args))
 
 ;;;###autoload
 (defun magit-stgit-redo ()
