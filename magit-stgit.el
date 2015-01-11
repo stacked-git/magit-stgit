@@ -261,7 +261,7 @@ Else, asks the user for a patch name."
              ;;
              (?g  "Refresh"  magit-stgit-refresh-popup)
              (?r  "Repair"   magit-stgit-repair)
-             (?R  "Rebase"   magit-stgit-rebase)
+             (?R  "Rebase"   magit-stgit-rebase-popup)
              ;;
              (?z  "Undo"     magit-stgit-undo-popup)
              (?Z  "Redo"     magit-stgit-redo-popup)))
@@ -404,10 +404,19 @@ into the series."
   (magit-run-stgit "repair")
   (message "Repairing series...done"))
 
+(magit-define-popup magit-stgit-rebase-popup
+  "Popup console for StGit rebase."
+  'magit-popups
+  :switches '((?n "Do not push the patches back after rebasing" "--nopush")
+              (?m "Check for patches merged upstream"           "--merged"))
+  :actions  '((?R  "Rebase"  magit-stgit-rebase))
+  :default-action #'magit-stgit-rebase)
+
 ;;;###autoload
-(defun magit-stgit-rebase ()
-  "Rebase a StGit patch series."
-  (interactive)
+(defun magit-stgit-rebase (&rest args)
+  "Rebase a StGit patch series.
+Use ARGS to pass additional arguments"
+  (interactive (magit-stgit-rebase-arguments))
   (let* ((branch (magit-get-current-branch))
          (remote (magit-get-remote branch)))
     (if (not (and remote branch))
@@ -416,7 +425,7 @@ into the series."
         (message "Updating remote...")
         (magit-run-git-async "remote" "update" remote)
         (message "Updating remote...done"))
-      (magit-run-stgit "rebase" (format "remotes/%s/%s" remote branch)))))
+      (magit-run-stgit "rebase" args "--" (format "remotes/%s/%s" remote branch)))))
 
 (magit-define-popup magit-stgit-delete-popup
   "Popup console for StGit delete."
