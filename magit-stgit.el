@@ -80,16 +80,6 @@
   :group 'magit-stgit
   :type 'string)
 
-(defcustom magit-stgit-refresh-stage-only t
-  "Whether a patch is refreshed only with staged changes (or the worktree otherwise)."
-  :group 'magit-stgit
-  :type 'boolean)
-
-(defcustom magit-stgit-refresh-ask-to-stage magit-commit-ask-to-stage
-  "Whether to ask to stage everything when refreshing a patch and nothing is staged."
-  :group 'magit-stgit
-  :type 'boolean)
-
 ;;;; Faces
 
 (defgroup magit-stgit-faces nil
@@ -269,7 +259,7 @@ Else, asks the user for a patch name."
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto-popup)
              ;;
-             (?g  "Refresh"  magit-stgit-refresh)
+             (?g  "Refresh"  magit-stgit-refresh-popup)
              (?r  "Repair"   magit-stgit-repair)
              (?R  "Rebase"   magit-stgit-rebase)
              ;;
@@ -282,7 +272,7 @@ Else, asks the user for a patch name."
   (interactive)
   (magit-run-stgit "init"))
 
-(defvar magit-stgit-new-filename-regexp ".stgit-new.txt")
+(defvar magit-stgit-new-filename-regexp ".stgit-\\(new\\|edit\\).txt")
 
 (defun magit-stgit-new-check-buffer ()
   "Check if buffer is an StGit commit message."
@@ -381,24 +371,28 @@ Use ARGS to pass additional arguments."
   (interactive (-flatten (list (magit-stgit-uncommit-arguments))))
   (magit-run-stgit "uncommit" args))
 
+(magit-define-popup magit-stgit-refresh-popup
+  "Popup console for StGit refresh."
+  'magit-popups
+  :switches '((?u "Only update the current patch files"    "--update")
+              (?i "Refresh from index instead of worktree" "--index")
+              (?F "Force refresh even if index is dirty"   "--force")
+              (?e "Edit the patch description"             "--edit")
+              (?s "Add \"Signed-off-by:\" line"            "--sign")
+              (?a "Add \"Acked-by:\" line"                 "--ack"))
+  :actions  '((?g  "Refresh"  magit-stgit-refresh))
+  :default-action #'magit-stgit-refresh)
+
 ;;;###autoload
-(defun magit-stgit-refresh (&optional patch)
-  "Refresh a StGit patch."
-  (interactive
-   (list (magit-stgit-read-patch "Refresh patch (default top)")))
-  (let ((args '("refresh")))
-    (when magit-stgit-refresh-stage-only
-      (add-to-list 'args "-i" t)
-      (unless (magit-anything-staged-p)
-        (if magit-stgit-refresh-ask-to-stage
-            (if (y-or-n-p "Nothing staged.  Stage and refresh everything? ")
-                (magit-run-git "add" "-u" ".")
-              (user-error "Nothing staged"))
-          (user-error "Nothing staged"))))
-    (when patch
-      (add-to-list 'args "-p" t)
-      (add-to-list 'args patch t))
-    (magit-run-stgit args)))
+(defun magit-stgit-refresh (&optional patch &rest args)
+  "Refresh StGit patch PATCH.
+Use ARGS to pass additional arguments."
+  (interactive (list (magit-stgit-read-patches nil nil t nil "Refresh patch (default top)")
+                     (magit-stgit-refresh-arguments)))
+  (setq patch (nth 0 patch))
+  (when patch
+    (add-to-list 'args (format "--patch=%s" patch) t))
+  (magit-run-stgit-async "refresh" args))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
