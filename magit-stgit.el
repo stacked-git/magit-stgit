@@ -139,6 +139,15 @@
 Any list in ARGS is flattened."
   (magit-run-stgit-callback (lambda ()) args))
 
+(defun magit-run-stgit-async (&rest args)
+  "Asynchronously run StGit command with given arguments.
+Any list in ARGS is flattened."
+  (with-editor "GIT_EDITOR"
+    (let ((magit-process-popup-time -1))
+      (message "Running %s %s" magit-stgit-executable
+               (mapconcat 'identity (-flatten args) " "))
+      (apply #'magit-start-process magit-stgit-executable nil (-flatten args)))))
+
 (defun magit-run-stgit-and-mark-remove (patches &rest args)
   "Run `magit-run-stgit' and `magit-stgit-mark-remove'.
 Argument PATCHES sets the marks to remove, and ARGS the arguments to StGit."
@@ -295,12 +304,7 @@ Else, asks the user for a patch name."
   "Create a new StGit patch.
 Use ARGS to pass additional arguments."
   (interactive (magit-stgit-new-arguments))
-  (with-editor "GIT_EDITOR"
-    (let ((magit-process-popup-time -1))
-      (message "Running %s %s" magit-git-executable
-               (mapconcat 'identity (-flatten (list "new" args)) " "))
-      (apply #'magit-start-process magit-stgit-executable nil
-             "new" args))))
+  (magit-run-stgit-async "new" args))
 
 (magit-define-popup magit-stgit-float-popup
   "Popup console for StGit float."
