@@ -286,6 +286,8 @@ Else, asks the user for a patch name."
   'magit-popups
   :switches '((?a "Add \"Acked-by:\" line" "--ack")
               (?s "Add \"Signed-off-by:\" line" "--sign"))
+  :options  '((?n "Set patch name" ""
+                  (lambda (prompt default) (read-from-minibuffer "Patch name: " default))))
   :actions  '((?N  "New"  magit-stgit-new))
   :default-action #'magit-stgit-new)
 
