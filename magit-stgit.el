@@ -610,19 +610,22 @@ Use ARGS to pass additional arguments."
       (magit-insert-section (stgit-patch patch)
         (magit-insert
          (if (magit-stgit-mark-contains patch) "#" " "))
-        (magit-insert state (cond ((equal state ">") 'magit-stgit-current)
-                                  ((equal state "+") 'magit-stgit-applied)
-                                  ((equal state "-") 'magit-stgit-unapplied)
-                                  ((equal state "!") 'magit-stgit-hidden)
-                                  (t (user-error "Unknown stgit patch state: %s"
-                                                 state))))
-        (magit-insert empty 'magit-stgit-empty ?\s)
-        (when magit-stgit-show-patch-name
-          (magit-insert patch 'magit-stgit-patch ?\s))
-        (insert msg)
-        (put-text-property (line-beginning-position) (1+ (line-end-position))
-                           'keymap 'magit-stgit-patch-map)
-        (forward-line)))))
+
+        (let ((patch-face (cond ((equal state ">") 'magit-stgit-current)
+                                ((equal state "+") 'magit-stgit-applied)
+                                ((equal state "-") 'magit-stgit-unapplied)
+                                ((equal state "!") 'magit-stgit-hidden)
+                                (t (user-error "Unknown stgit patch state: %s"
+                                               state)))))
+
+          (magit-insert state patch-face)
+          (magit-insert empty 'magit-stgit-empty ?\s)
+          (when magit-stgit-show-patch-name
+            (magit-insert patch patch-face (s-repeat (+ 4 (- 30 (length patch))) " ")))
+          (insert msg)
+          (put-text-property (line-beginning-position) (1+ (line-end-position))
+                             'keymap 'magit-stgit-patch-map)
+          (forward-line))))))
 
 ;;; magit-stgit.el ends soon
 
