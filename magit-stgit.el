@@ -249,6 +249,7 @@ Else, asks the user for a patch name."
              ;;
              (?N  "New"      magit-stgit-new-popup)
              (?n  "Rename"   magit-stgit-rename)
+             (?e  "Edit"     magit-stgit-edit-popup)
              (?c  "Commit"   magit-stgit-commit-popup)
              (?C  "Uncommit" magit-stgit-uncommit-popup)
              (?k  "Delete"   magit-stgit-delete-popup)
@@ -297,6 +298,22 @@ Else, asks the user for a patch name."
 Use ARGS to pass additional arguments."
   (interactive (magit-stgit-new-arguments))
   (magit-run-stgit-async "new" args))
+
+(magit-define-popup magit-stgit-edit-popup
+  "Popup console for StGit edit."
+  'magit-popups
+  :switches '((?s "Add \"Signed-off-by:\" line" "--sign")
+              (?a "Add \"Acked-by:\" line" "--ack"))
+  :actions  '((?e  "Edit"  magit-stgit-edit))
+  :default-action #'magit-stgit-edit)
+
+;;;###autoload
+(defun magit-stgit-edit (patch &rest args)
+  "Edit the description of an existing StGit PATCH.
+Use ARGS to pass additional arguments."
+  (interactive (list (magit-stgit-read-patches nil nil t nil "Edit patch (default is top)")
+                     (magit-stgit-edit-arguments)))
+  (magit-run-stgit-async "edit" "--edit" args "--" patch))
 
 (magit-define-popup magit-stgit-float-popup
   "Popup console for StGit float."
@@ -547,6 +564,8 @@ Use ARGS to pass additional arguments."
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
+    ["Edit patch" magit-stgit-edit-popup
+     :help "Edit a patch"]
     ["Commit patch" magit-stgit-commit-popup
      :help "Permanently store the base patch into the stack base"]
     ["Uncommit patch" magit-stgit-uncommit-popup
