@@ -541,7 +541,7 @@ Use ARGS to pass additional arguments."
     ["Initialize" magit-stgit-init
      :help "Initialize StGit support for the current branch"]
     "---"
-    ["Create new patch" magit-stgit-new
+    ["Create new patch" magit-stgit-new-popup
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
@@ -552,21 +552,21 @@ Use ARGS to pass additional arguments."
     ["Delete patch" magit-stgit-delete-popup
      :help "Delete an StGit patch"]
     "---"
-    ["Float patch" magit-stgit-float
+    ["Float patch" magit-stgit-float-popup
      :help "Float StGit patch to the top"]
-    ["Sink patch" magit-stgit-sink
+    ["Sink patch" magit-stgit-sink-popup
      :help "Sink StGit patch deeper down the stack"]
     "---"
-    ["Refresh patch" magit-stgit-refresh
+    ["Refresh patch" magit-stgit-refresh-popup
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
-    ["Rebase series" magit-stgit-rebase
+    ["Rebase series" magit-stgit-rebase-popup
      :help "Rebase an StGit patch series"]
     "---"
-    ["Undo the last operation" magit-stgit-undo
+    ["Undo the last operation" magit-stgit-undo-popup
      :help "Undo the last operation"]
-    ["Undo the last undo operation" magit-stgit-redo
+    ["Undo the last undo operation" magit-stgit-redo-popup
      :help "Undo the last undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
