@@ -85,6 +85,12 @@
   :group 'magit-stgit
   :type 'boolean)
 
+(defcustom magit-stgit-custom-patch-names nil
+  "Whether the user is asked to explicitly name new patches.
+Otherwise let StGit generate new patch name from the commit message."
+  :group 'magit-stgit
+  :type 'boolean)
+
 ;;;; Faces
 
 (defgroup magit-stgit-faces nil
@@ -299,6 +305,8 @@ Else, asks the user for a patch name."
   "Create a new StGit patch.
 Use ARGS to pass additional arguments."
   (interactive (magit-stgit-new-arguments))
+  (when magit-stgit-custom-patch-names
+    (add-to-list 'args (read-string "Patch name: ")))
   (magit-run-stgit-async "new" args))
 
 (magit-define-popup magit-stgit-float-popup
