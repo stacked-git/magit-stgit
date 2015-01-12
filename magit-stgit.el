@@ -80,6 +80,11 @@
   :group 'magit-stgit
   :type 'string)
 
+(defcustom magit-stgit-refresh-stage-only t
+  "Whether a patch is refreshed only with staged changes (or the worktree otherwise)."
+  :group 'magit-stgit
+  :type 'boolean)
+
 ;;;; Faces
 
 (defgroup magit-stgit-faces nil
@@ -390,6 +395,12 @@ Use ARGS to pass additional arguments."
   (interactive (list (magit-stgit-read-patches nil nil t nil "Refresh patch (default top)")
                      (magit-stgit-refresh-arguments)))
   (setq patch (nth 0 patch))
+  (when magit-stgit-refresh-stage-only
+    (add-to-list 'args "-i" t)
+    (unless (magit-anything-staged-p)
+      (if (y-or-n-p "Nothing staged.  Stage and refresh everything? ")
+          (magit-run-git "add" "-u" ".")
+        (user-error "Nothing staged"))))
   (when patch
     (add-to-list 'args (format "--patch=%s" patch) t))
   (magit-run-stgit-async "refresh" args))
