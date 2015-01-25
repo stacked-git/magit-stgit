@@ -375,6 +375,9 @@ Use ARGS to pass additional arguments."
   "Permanently store patches into the stack base."
   (interactive (list (magit-stgit-read-patches t t t t nil)
                      (magit-stgit-commit-arguments)))
+  (when (and (member "--all" (car args))
+             (= 1 (length patches)))
+    (setq patches (list nil)))
   (magit-run-stgit-and-mark-remove patches "commit" args "--" patches))
 
 (magit-define-popup magit-stgit-uncommit-popup
