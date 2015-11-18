@@ -628,15 +628,15 @@ Use ARGS to pass additional arguments."
     (magit-bind-match-strings (empty state patch msg) nil
       (delete-region (point) (point-at-eol))
       (magit-insert-section (stgit-patch patch)
-        (magit-insert
-         (if (magit-stgit-mark-contains patch) "#" " "))
-        (magit-insert state (cond ((equal state ">") 'magit-stgit-current)
+        (insert (if (magit-stgit-mark-contains patch) "#" " "))
+        (insert (propertize state 'face
+                            (cond ((equal state ">") 'magit-stgit-current)
                                   ((equal state "+") 'magit-stgit-applied)
                                   ((equal state "-") 'magit-stgit-unapplied)
                                   ((equal state "!") 'magit-stgit-hidden)
                                   (t (user-error "Unknown stgit patch state: %s"
-                                                 state))))
-        (magit-insert empty 'magit-stgit-empty ?\s)
+                                                 state)))))
+        (insert (propertize empty 'face 'magit-stgit-empty) ?\s)
         (when magit-stgit-show-patch-name
           (magit-insert patch 'magit-stgit-patch ?\s))
         (insert msg)
