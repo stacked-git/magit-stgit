@@ -55,6 +55,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'dash)
 
 (require 'magit)
 
@@ -463,10 +464,14 @@ Argument PATCHES is a list of patchnames.
 Use ARGS to pass additional arguments."
   (interactive (list (magit-stgit-read-patches t t t t "Delete patch")
                      (magit-stgit-delete-arguments)))
-  (when (and (called-interactively-p 'any)
-             (not magit-current-popup)
-             (y-or-n-p "Spill contents? "))
-    (add-to-list 'args "--spill"))
+  (let ((affected-files
+         (-mapcat (lambda (patch)
+                    (magit-stgit-lines "files" "--bare" patch))
+                  patches)))
+    (when (and (called-interactively-p 'any)
+               (not magit-current-popup)
+               (and affected-files (y-or-n-p "Spill contents? ")))
+      (add-to-list 'args "--spill")))
   (let ((spill (member "--spill" args)))
     (when spill
       (setq spill (list "--spill")))
