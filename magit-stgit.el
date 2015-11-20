@@ -645,7 +645,7 @@ Use ARGS to pass additional arguments."
                                                  state)))))
         (insert (propertize empty 'face 'magit-stgit-empty) ?\s)
         (when magit-stgit-show-patch-name
-          (magit-insert patch 'magit-stgit-patch ?\s))
+          (insert (propertize patch 'face 'magit-stgit-patch) ?\s))
         (insert msg)
         (put-text-property (line-beginning-position) (1+ (line-end-position))
                            'keymap 'magit-stgit-patch-map)
