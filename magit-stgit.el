@@ -536,6 +536,8 @@ Use ARGS to pass additional arguments."
     (define-key map "/" 'magit-stgit-popup)
     map))
 
+(magit-define-popup-action 'magit-dispatch-popup ?/ "StGit" 'magit-stgit-popup)
+
 ;;;###autoload
 (define-minor-mode magit-stgit-mode
   "StGit support for Magit."
