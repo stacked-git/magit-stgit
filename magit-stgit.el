@@ -37,7 +37,7 @@
 ;; is displayed in the status buffer.  While point is on a patch the
 ;; changes it introduces can be shown using `RET', it can be selected
 ;; as the current patch using `a', and it can be discarded using `k'.
-;; Other StGit commands are available from the StGit popup on `Y'.
+;; Other StGit commands are available from the StGit popup on `/'.
 
 ;; To enable the mode in a particular repository use:
 ;;
@@ -533,7 +533,7 @@ Use ARGS to pass additional arguments."
 
 (defvar magit-stgit-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "Y" 'magit-stgit-popup)
+    (define-key map "/" 'magit-stgit-popup)
     map))
 
 ;;;###autoload
