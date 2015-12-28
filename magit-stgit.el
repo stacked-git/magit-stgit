@@ -502,7 +502,7 @@ Use ARGS to pass additional arguments."
 (defun magit-stgit-show (patch)
   "Show diff of a StGit patch."
   (interactive (magit-stgit-read-patches nil nil t t "Show patch"))
-  (magit-show-commit (magit-stgit-lines "id" patch)))
+  (magit-show-commit (car (magit-stgit-lines "id" patch))))
 
 (magit-define-popup magit-stgit-undo-popup
   "Popup console for StGit undo."
