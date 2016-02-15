@@ -3,7 +3,7 @@
 ;; Copyright (C) 2011-2015  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
-;; Maintainer: Jonas Bernoulli <jonas@bernoul.li>
+;; Maintainer: Lluís Vilanova <vilanova@ac.upc.edu>
 ;; Keywords: vc tools
 ;; Package: magit-stgit
 ;; Package-Requires: ((emacs "24.4") (magit "2.1.0"))
