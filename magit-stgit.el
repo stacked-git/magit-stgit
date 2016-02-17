@@ -66,6 +66,11 @@
   "StGit support for Magit."
   :group 'magit-extensions)
 
+(defgroup magit-stgit-commands nil
+  "Options controlling behavior of certain commands."
+  :group 'magit-stgit)
+
+
 (defcustom magit-stgit-executable "stg"
   "The name of the StGit executable."
   :group 'magit-stgit
@@ -245,7 +250,7 @@ Else, asks the user for a patch name."
 
 (magit-define-popup magit-stgit-popup
   "Popup console for StGit commands."
-  'magit-popups
+  'magit-stgit-commands
   :actions '((?i  "Init"     magit-stgit-init)
              ;;
              (?N  "New"      magit-stgit-new-popup)
@@ -285,7 +290,7 @@ Else, asks the user for a patch name."
 
 (magit-define-popup magit-stgit-new-popup
   "Popup console for StGit new."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?a "Add \"Acked-by:\" line" "--ack")
               (?s "Add \"Signed-off-by:\" line" "--sign"))
   :options  '((?n "Set patch name" ""
@@ -302,7 +307,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-edit-popup
   "Popup console for StGit edit."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?s "Add \"Signed-off-by:\" line" "--sign")
               (?a "Add \"Acked-by:\" line" "--ack"))
   :actions  '((?e  "Edit"  magit-stgit-edit))
@@ -318,7 +323,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-float-popup
   "Popup console for StGit float."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?k "Keep the local changes" "--keep"))
   :actions  '((?f  "Float"  magit-stgit-float))
   :default-action #'magit-stgit-float)
@@ -341,7 +346,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-sink-popup
   "Popup console for StGit sink."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?k "Keep the local changes" "--keep"))
   :options  '((?t "Sink patches below the target patch (else to bottom)"
                   "--to="
@@ -365,7 +370,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-commit-popup
   "Popup console for StGit commit."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?a "Commit all applied patches" "--all"))
   :options  '((?n "Commit the specified number of patches" "--number=" read-number))
   :actions  '((?c  "Commit"  magit-stgit-commit))
@@ -383,7 +388,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-uncommit-popup
   "Popup console for StGit uncommit."
-  'magit-popups
+  'magit-stgit-commands
   :options  '((?n "Uncommit the specified number of commits" "--num=" read-number))
   :actions  '((?C  "Uncommit"  magit-stgit-uncommit))
   :default-action #'magit-stgit-uncommit)
@@ -396,7 +401,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-refresh-popup
   "Popup console for StGit refresh."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?u "Only update the current patch files"    "--update")
               (?i "Refresh from index instead of worktree" "--index")
               (?F "Force refresh even if index is dirty"   "--force")
@@ -429,7 +434,7 @@ into the series."
 
 (magit-define-popup magit-stgit-rebase-popup
   "Popup console for StGit rebase."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?n "Do not push the patches back after rebasing" "--nopush")
               (?m "Check for patches merged upstream"           "--merged"))
   :actions  '((?R  "Rebase"  magit-stgit-rebase))
@@ -452,7 +457,7 @@ Use ARGS to pass additional arguments"
 
 (magit-define-popup magit-stgit-delete-popup
   "Popup console for StGit delete."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?s "Spill patch contents to worktree and index" "--spill"))
   :actions  '((?k  "Delete"  magit-stgit-delete))
   :default-action #'magit-stgit-delete)
@@ -484,7 +489,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-goto-popup
   "Popup console for StGit goto."
-  'magit-popups
+  'magit-stgit-commands
   :switches '((?k "Keep the local changes"            "--keep")
               (?m "Check for patches merged upstream" "--merged"))
   :actions  '((?a  "Goto"  magit-stgit-goto))
@@ -506,7 +511,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-undo-popup
   "Popup console for StGit undo."
-  'magit-popups
+  'magit-stgit-commands
   :options  '((?n "Undo the last N commands" "--number=" read-number))
   :switches '((?h "Discard changes in index/worktree" "--hard"))
   :actions  '((?z  "Undo"  magit-stgit-undo))
@@ -521,7 +526,7 @@ Use ARGS to pass additional arguments."
 
 (magit-define-popup magit-stgit-redo-popup
   "Popup console for StGit redo."
-  'magit-popups
+  'magit-stgit-commands
   :options  '((?n "Undo the last N commands" "--number=" read-number))
   :switches '((?h "Discard changes in index/worktree" "--hard"))
   :actions  '((?Z  "Redo"  magit-stgit-redo))
