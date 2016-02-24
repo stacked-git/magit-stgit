@@ -266,6 +266,8 @@ Else, asks the user for a patch name."
              (?\r "Show"     magit-stgit-show)
              (?a  "Goto"     magit-stgit-goto-popup)
              ;;
+             (?m  "Mail patches" magit-stgit-mail-popup)
+             ;;
              (?g  "Refresh"  magit-stgit-refresh-popup)
              (?r  "Repair"   magit-stgit-repair)
              (?R  "Rebase"   magit-stgit-rebase-popup)
@@ -538,6 +540,67 @@ Use ARGS to pass additional arguments."
 Use ARGS to pass additional arguments."
   (interactive (magit-stgit-redo-arguments))
   (magit-run-stgit "redo" args))
+
+;;;; magit-stgit-mail
+
+(magit-define-popup magit-stgit-mail-popup
+  "Popup console for StGit mail."
+  'magit-stgit-commands
+  :man-page "stg-mail"
+  :switches '((?m "Generate an mbox file instead of sending" "--mbox")
+              (?g "Use git send-email" "--git" t)
+              (?A "Auto-detect To, Cc and Bcc for all patches from cover"
+                  "--auto-recipients" t))
+  :options '((?o "Set file as cover message" "--cover="
+                 (lambda (prompt default) (read-file-name "Find file: " default)))
+             (?v "Add version to [PATCH ...]" "--version=")
+             (?p "Add prefix to [... PATCH ...]" "--prefix=")
+             (?t "Mail To" "--to=")
+             (?c "Mail Cc" "--cc=")
+             (?b "Mail Bcc:" "--bcc="))
+  :actions '((?m "Send" magit-stgit-mail)))
+
+;;;###autoload
+(defun magit-stgit-mail (patches &rest args)
+  "Send PATCHES with \"stg mail\".
+
+If a cover is specified, it will be searched to automatically set
+the To, Cc, and Bcc fields for all patches."
+  (interactive (list (magit-stgit-read-patches t t t t "Send patch")
+                     (magit-stgit-mail-arguments)))
+  (setq args (-flatten args))           ; nested list when called from popup
+  (let* ((auto "--auto-recipients")
+         (have-auto (member auto args))
+         (cover (car (delq nil (mapcar (lambda (arg)
+                                         (if (string-prefix-p "--cover=" arg)
+                                             arg nil))
+                                       args))))
+         (cover-pos -1))
+    (when have-auto
+      (setq args (delete auto args)))
+    (when (and have-auto cover)
+      (setq cover (substring cover 8))
+      (setq cover (with-temp-buffer (insert-file-contents cover)
+                                    (buffer-string)))
+      (while (setq cover-pos
+                   (string-match
+                        "^\\(To\\|Cc\\|Bcc\\):[[:space:]]+\\(.*\\)[[:space:]]*$"
+                        cover (1+ cover-pos)))
+        (let ((field (match-string 1 cover))
+              (recipient (match-string 2 cover)))
+          (setq field (match-string 1 cover))
+          (when (string-match "<" recipient)
+            (setq recipient (format "\"%s\"" recipient)))
+          (cond ((equal field "To")
+                 (setq args (cons (format "--to=%s" recipient)
+                                  args)))
+                ((equal field "Cc")
+                 (setq args (cons (format "--cc=%s" recipient)
+                                  args)))
+                ((equal field "Bcc")
+                 (setq args (cons (format "--bcc=%s" recipient)
+                                  args)))))))
+    (magit-run-stgit-async "mail" args patches)))
 
 ;;; Mode
 
