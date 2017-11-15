@@ -1,6 +1,6 @@
 ;;; magit-stgit.el --- StGit extension for Magit
 
-;; Copyright (C) 2011-2015  The Magit Project Contributors
+;; Copyright (C) 2011-2017  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
 ;; Maintainer: Lluís Vilanova <vilanova@ac.upc.edu>
@@ -99,7 +99,7 @@
   :group 'magit-stgit-faces)
 
 (add-to-list 'magit-ref-namespaces
-             '("^refs/patches/\\(.+\\)" magit-stgit-patch nil))
+             (cons "^refs/patches/\\(.+\\)" 'magit-stgit-patch))
 
 (defface magit-stgit-current
   '((((background dark)) (:weight bold :foreground "yellow"))
