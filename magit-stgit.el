@@ -8,18 +8,18 @@
 ;; Package: magit-stgit
 ;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0")
 
-;; Magit is free software; you can redistribute it and/or modify it
+;; Magit-StGit is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 3, or (at your option)
 ;; any later version.
 ;;
-;; Magit is distributed in the hope that it will be useful, but WITHOUT
+;; Magit-StGit is distributed in the hope that it will be useful, but WITHOUT
 ;; ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
 ;; or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
 ;; License for more details.
 ;;
 ;; You should have received a copy of the GNU General Public License
-;; along with Magit.  If not, see http://www.gnu.org/licenses.
+;; along with Magit-StGit.  If not, see http://www.gnu.org/licenses.
 
 ;;; Commentary:
 
