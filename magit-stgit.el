@@ -3,8 +3,9 @@
 ;; Copyright (C) 2011-2019  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
-;; Maintainer: Lluís Vilanova <vilanova@ac.upc.edu>
+;; Maintainer: UNMAINTAINED
 ;; Keywords: vc tools
+
 ;; Package: magit-stgit
 ;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0")
 
@@ -22,6 +23,8 @@
 ;; along with Magit-StGit.  If not, see http://www.gnu.org/licenses.
 
 ;;; Commentary:
+
+;; This package is no longer maintained.
 
 ;; This package provides very basic support for StGit.
 ;;
