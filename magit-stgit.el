@@ -7,7 +7,7 @@
 ;; Keywords: vc tools
 
 ;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0")
+;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0"))
 
 ;; Magit-StGit is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
