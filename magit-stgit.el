@@ -1,4 +1,4 @@
-;;; magit-stgit.el --- StGit extension for Magit
+;;; magit-stgit.el --- StGit extension for Magit  -*- lexical-binding: t; -*-
 
 ;; Copyright (C) 2011-2019  The Magit Project Contributors
 
@@ -370,8 +370,7 @@ Use ARGS to pass additional arguments."
              (not magit-current-popup))
     (let ((target (magit-stgit-read-patch "Target patch (default is bottom)")))
       (when target
-        (add-to-list 'args "-t" t)
-        (add-to-list 'args target t))))
+        (setq args (append args (list "-t" target))))))
   (magit-run-stgit-and-mark-remove patches "sink" args "--" patches))
 
 (magit-define-popup magit-stgit-commit-popup
@@ -425,7 +424,7 @@ Use ARGS to pass additional arguments."
                      (magit-stgit-refresh-arguments)))
   (setq patch (nth 0 patch))
   (when patch
-    (add-to-list 'args (format "--patch=%s" patch) t))
+    (setq args (append args (list (format "--patch=%s" patch)))))
   (magit-run-stgit-async "refresh" args))
 
 ;;;###autoload
@@ -482,7 +481,7 @@ Use ARGS to pass additional arguments."
     (when (and (called-interactively-p 'any)
                (not magit-current-popup)
                (and affected-files (y-or-n-p "Spill contents? ")))
-      (add-to-list 'args "--spill")))
+      (setq args (append args (list "--spill")))))
   (let ((spill (member "--spill" args)))
     (when spill
       (setq spill (list "--spill")))
