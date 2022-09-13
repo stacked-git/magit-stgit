@@ -7,7 +7,7 @@
 ;; Keywords: vc tools
 
 ;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0"))
+;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0") (transient "0.3.7"))
 
 ;; Magit-StGit is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
@@ -40,7 +40,7 @@
 ;; is displayed in the status buffer.  While point is on a patch the
 ;; changes it introduces can be shown using `RET', it can be selected
 ;; as the current patch using `a', and it can be discarded using `k'.
-;; Other StGit commands are available from the StGit popup on `/'.
+;; Other StGit commands are available from the StGit transient on `/'.
 
 ;; To enable the mode in a particular repository use:
 ;;
@@ -62,6 +62,7 @@
 
 (require 'magit)
 (require 'magit-popup)
+(require 'transient)
 
 ;;; Options
 ;;;; Variables
@@ -250,32 +251,28 @@ one from the minibuffer, and move to the next line."
 
 ;;; Commands
 
-(magit-define-popup magit-stgit-popup
-  "Popup console for StGit commands."
-  'magit-stgit-commands
-  :actions '((?i  "Init"     magit-stgit-init)
-             ;;
-             (?N  "New"      magit-stgit-new-popup)
-             (?n  "Rename"   magit-stgit-rename)
-             (?e  "Edit"     magit-stgit-edit-popup)
-             (?c  "Commit"   magit-stgit-commit-popup)
-             (?C  "Uncommit" magit-stgit-uncommit-popup)
-             (?k  "Delete"   magit-stgit-delete-popup)
-             ;;
-             (?f  "Float"    magit-stgit-float-popup)
-             (?s  "Sink"     magit-stgit-sink-popup)
-             ;;
-             (?\r "Show"     magit-stgit-show)
-             (?a  "Goto"     magit-stgit-goto-popup)
-             ;;
-             (?m  "Mail patches" magit-stgit-mail-popup)
-             ;;
-             (?g  "Refresh"  magit-stgit-refresh-popup)
-             (?r  "Repair"   magit-stgit-repair)
-             (?R  "Rebase"   magit-stgit-rebase-popup)
-             ;;
-             (?z  "Undo"     magit-stgit-undo-popup)
-             (?Z  "Redo"     magit-stgit-redo-popup)))
+(transient-define-prefix magit-stgit-dispatch ()
+  "Manipulate StGit patches."
+  :man-page "stg"
+  ["Stack"
+   [("i"   "Init"         magit-stgit-init)
+    ("f"   "Float"        magit-stgit-float-popup)
+    ("s"   "Sink"         magit-stgit-sink-popup)
+    ("a"   "Goto"         magit-stgit-goto-popup)]
+   [("c"   "Commit"       magit-stgit-commit-popup)
+    ("C"   "Uncommit"     magit-stgit-uncommit-popup)
+    ("r"   "Repair"       magit-stgit-repair)
+    ("R"   "Rebase"       magit-stgit-rebase-popup)]
+   [("z"   "Undo"         magit-stgit-undo-popup)
+    ("Z"   "Redo"         magit-stgit-redo-popup)]]
+  ["Patch"
+   [("N"   "New"          magit-stgit-new-popup)
+    ("g"   "Refresh"      magit-stgit-refresh-popup)
+    ("RET" "Show"         magit-stgit-show)]
+   [("e"   "Edit"         magit-stgit-edit-popup)
+    ("n"   "Rename"       magit-stgit-rename)
+    ("k"   "Delete"       magit-stgit-delete-popup)]
+   [("m"   "Mail patches" magit-stgit-mail-popup)]])
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -607,18 +604,17 @@ the To, Cc, and Bcc fields for all patches."
 
 ;;; Mode
 
-(defvar magit-stgit-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "/" 'magit-stgit-popup)
-    map))
-
-(magit-define-popup-action 'magit-dispatch-popup ?/ "StGit" 'magit-stgit-popup)
+;;;###autoload
+(eval-after-load 'magit
+  '(progn
+    (define-key magit-mode-map "/" 'magit-stgit-dispatch)
+    (transient-append-suffix 'magit-dispatch '(0 -1 -1)
+      '("/" "StGit" magit-stgit-dispatch))))
 
 ;;;###autoload
 (define-minor-mode magit-stgit-mode
   "StGit support for Magit."
   :lighter magit-stgit-mode-lighter
-  :keymap  magit-stgit-mode-map
   (unless (derived-mode-p 'magit-mode)
     (user-error "This mode only makes sense with Magit"))
   (if magit-stgit-mode
@@ -682,7 +678,7 @@ the To, Cc, and Bcc fields for all patches."
   (let ((map (make-sparse-keymap)))
     (define-key map "k"  'magit-stgit-delete)
     (define-key map "a"  'magit-stgit-goto)
-    (define-key map "\r" 'magit-stgit-show)
+    (define-key map (kbd "RET") #'magit-stgit-show)
     (define-key map "#" #'magit-stgit-mark-toggle)
     map))
 
