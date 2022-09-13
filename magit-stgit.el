@@ -174,77 +174,76 @@ Any list in ARGS is flattened."
 
 (defun magit-stgit-patches-sorted (patches)
   "Return elements in PATCHES with the same partial order as the series."
-  (let ((original (magit-stgit-lines "series" "--noprefix"))
-        sorted)
-    (mapc (lambda (patch)
-            (when (member patch patches)
-              (add-to-list 'sorted patch t)))
-          original)
-    sorted))
+  (mapcan (lambda (patch) (and (member patch patches) (list patch)))
+          (magit-stgit-lines "series" "--noprefix")))
 
 ;;; Marking
 
-(defvar-local magit-stgit-marked-patches nil
-  "Internal list of marked patches.")
+(defvar-local magit-stgit--marked-patches nil
+  "List of currently marked patches.")
 
-(defun magit-stgit-read-patches (use-region use-marks use-point require-match prompt)
-  "Return list of selected patches.
-If USE-REGION and there is an active region, return marked
-patches in it (if USE-MARKS), or all patches in the region if
-USE-MARKS is not set or none is marked.
-Else, if USE-MARKS and some patches are marked, return these.
-Else, if USE-POINT, return the patch at point.
-Else, if PROMPT, ask the user for the name of a patch using
-PROMPT."
+(defun magit-stgit-read-patches (use-region use-marks use-point
+                                 require-match prompt)
+  "Return a list of patches selected according to the arguments.
+
+If USE-REGION is non-nil and there is an active region, return
+marked patches in the region if USE-MARKS is non-nil, or all
+patches in the region if USE-MARKS is nil.
+
+Otherwise, if USE-MARKS is non-nil and some patches are marked,
+return those.
+
+Otherwise, if USE-POINT is non-nil, return the patch at point.
+
+Otherwise, if PROMPT is non-nil, ask the user for the name of a
+patch using `magit-stgit-read-patch', passing PROMPT and
+REQUIRE-MATCH."
   (let* ((region (and use-region (magit-region-values 'stgit-patch)))
-         (intersection (cl-intersection region magit-stgit-marked-patches
+         (intersection (cl-intersection region magit-stgit--marked-patches
                                         :test #'equal)))
-    (or (and use-marks
-             intersection)
+    (or (and use-marks intersection)
         region
-        (and use-marks
-             (magit-stgit-patches-sorted magit-stgit-marked-patches))
+        (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
         (list (or (and use-point (magit-section-value-if 'stgit-patch))
                   (and prompt (magit-stgit-read-patch prompt require-match)))))))
 
 (defun magit-stgit-mark-contains (patch)
-  "Whether the given PATCH is marked."
-  (member patch magit-stgit-marked-patches))
+  "Return whether the given PATCH is marked."
+  (member patch magit-stgit--marked-patches))
 
 (defun magit-stgit-mark-add (patches)
-  "Set mark of patches.
-See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  "Add PATCHES to the set of marked patches.
+
+If called interactively, mark the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (add-to-list 'magit-stgit-marked-patches patch))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-union magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
 (defun magit-stgit-mark-remove (patches)
-  "Unset mark of patches.
-See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  "Remove PATCHES from the set of marked patches.
+
+If called interactively, unmark the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches)))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-set-difference magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
 (defun magit-stgit-mark-toggle (patches)
-  "Toggle mark of patches.
-If given, PATCHES specifies the patch names.
-Else, if there is an active region, toggles these.
-Else, if point is in an StGit section, toggles the patch at point.
-Else, asks the user for a patch name."
+  "Toggle the marked status of PATCHES, adding or removing each
+from the set of marked patches as necessary.
+
+If called interactively, toggle the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (if (magit-stgit-mark-contains patch)
-              (magit-stgit-mark-remove (list patch))
-            (magit-stgit-mark-add (list patch))))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-set-exclusive-or magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
@@ -684,7 +683,7 @@ the To, Cc, and Bcc fields for all patches."
     (define-key map "k"  'magit-stgit-delete)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map "\r" 'magit-stgit-show)
-    (define-key map "#"  #'magit-stgit-mark-toggle)
+    (define-key map "#" #'magit-stgit-mark-toggle)
     map))
 
 (defun magit-insert-stgit-series ()
