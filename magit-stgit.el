@@ -74,7 +74,6 @@
   "Options controlling behavior of certain commands."
   :group 'magit-stgit)
 
-
 (defcustom magit-stgit-executable "stg"
   "The name of the StGit executable."
   :group 'magit-stgit
@@ -183,6 +182,11 @@ Any list in ARGS is flattened."
           original)
     sorted))
 
+;;; Marking
+
+(defvar-local magit-stgit-marked-patches nil
+  "Internal list of marked patches.")
+
 (defun magit-stgit-read-patches (use-region use-marks use-point require-match prompt)
   "Return list of selected patches.
 If USE-REGION and there is an active region, return marked
@@ -200,13 +204,8 @@ PROMPT."
         region
         (and use-marks
              (magit-stgit-patches-sorted magit-stgit-marked-patches))
-        (list (or (and use-point (magit-section-when stgit-patch))
+        (list (or (and use-point (magit-section-value-if 'stgit-patch))
                   (and prompt (magit-stgit-read-patch prompt require-match)))))))
-
-;;; Marking
-
-(defvar-local magit-stgit-marked-patches nil
-  "Internal list of marked patches.")
 
 (defun magit-stgit-mark-contains (patch)
   "Whether the given PATCH is marked."
