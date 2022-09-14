@@ -267,7 +267,7 @@ one from the minibuffer, and move to the next line."
     ("Z"   "Redo"         magit-stgit-redo-popup)]]
   ["Patch"
    [("N"   "New"          magit-stgit-new)
-    ("g"   "Refresh"      magit-stgit-refresh-popup)
+    ("g"   "Refresh"      magit-stgit-refresh)
     ("RET" "Show"         magit-stgit-show)]
    [("e"   "Edit"         magit-stgit-edit)
     ("n"   "Rename"       magit-stgit-rename)
@@ -438,28 +438,31 @@ one from the minibuffer."
   (interactive (transient-args 'magit-stgit-uncommit))
   (magit-run-stgit "uncommit" args))
 
-(magit-define-popup magit-stgit-refresh-popup
-  "Popup console for StGit refresh."
-  'magit-stgit-commands
-  :switches '((?u "Only update the current patch files"    "--update")
-              (?i "Refresh from index instead of worktree" "--index")
-              (?F "Force refresh even if index is dirty"   "--force")
-              (?e "Edit the patch description"             "--edit")
-              (?s "Add \"Signed-off-by:\" line"            "--sign")
-              (?a "Add \"Acked-by:\" line"                 "--ack"))
-  :actions  '((?g  "Refresh"  magit-stgit-refresh))
-  :default-action #'magit-stgit-refresh)
+(transient-define-prefix magit-stgit-refresh ()
+  "Include the latest changes into a patch."
+  :man-page "stg-refresh"
+  ["Arguments"
+   ("-u" "Only update the current patch files" "--update")
+   ("-i" "Refresh from index instead of worktree" "--index")
+   ("-F" "Force refresh even if index is dirty" "--force")
+   ("-e" "Edit the patch description" "--edit")
+   ("-s" "Add Signed-off-by" "--sign")
+   ("-a" "Add Acked-by" "--ack")]
+  ["Actions"
+   ("g" "Refresh" magit-stgit--refresh)])
 
 ;;;###autoload
-(defun magit-stgit-refresh (&optional patch &rest args)
-  "Refresh StGit patch PATCH.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t nil "Refresh patch (default top)")
-                     (magit-stgit-refresh-arguments)))
-  (setq patch (nth 0 patch))
-  (when patch
-    (setq args (append args (list (format "--patch=%s" patch)))))
-  (magit-run-stgit-async "refresh" args))
+(defun magit-stgit--refresh (&optional patch &rest args)
+  "Invoke `stg refresh --patch PATCH ARGS...'.
+
+If PATCH is nil, refresh the current patch.
+
+If called interactively, refresh the patch at point or read one
+from the minibuffer."
+  (interactive (cons (car (magit-stgit-read-patches
+                           nil nil t t "Refresh patch"))
+                     (transient-args 'magit-stgit-refresh)))
+  (magit-run-stgit-async "refresh" (and patch (list "--patch" patch)) args))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
@@ -694,7 +697,7 @@ the To, Cc, and Bcc fields for all patches."
     ["Sink patch" magit-stgit-sink
      :help "Sink StGit patch deeper down the stack"]
     "---"
-    ["Refresh patch" magit-stgit-refresh-popup
+    ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
