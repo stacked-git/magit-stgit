@@ -266,7 +266,7 @@ one from the minibuffer, and move to the next line."
    [("z"   "Undo"         magit-stgit-undo-popup)
     ("Z"   "Redo"         magit-stgit-redo-popup)]]
   ["Patch"
-   [("N"   "New"          magit-stgit-new-popup)
+   [("N"   "New"          magit-stgit-new)
     ("g"   "Refresh"      magit-stgit-refresh-popup)
     ("RET" "Show"         magit-stgit-show)]
    [("e"   "Edit"         magit-stgit-edit-popup)
@@ -289,22 +289,26 @@ one from the minibuffer, and move to the next line."
        (string-match-p magit-stgit-new-filename-regexp buffer-file-name)
        (git-commit-setup)))
 
-(magit-define-popup magit-stgit-new-popup
-  "Popup console for StGit new."
-  'magit-stgit-commands
-  :switches '((?a "Add \"Acked-by:\" line" "--ack")
-              (?s "Add \"Signed-off-by:\" line" "--sign"))
-  :options  '((?n "Set patch name" ""
-                  (lambda (prompt default) (read-from-minibuffer "Patch name: " default))))
-  :actions  '((?N  "New"  magit-stgit-new))
-  :default-action #'magit-stgit-new)
+(transient-define-prefix magit-stgit-new ()
+  "Create a new empty patch on top of the stack."
+  :man-page "stg-new"
+  ["Arguments"
+   ("-a" "Add Acked-by" "--ack")
+   ("-s" "Add Signed-off-by" "--sign")]
+  ["Actions"
+   ("N" "New" magit-stgit--new)])
 
 ;;;###autoload
-(defun magit-stgit-new (&rest args)
-  "Create a new StGit patch.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-new-arguments))
-  (magit-run-stgit-async "new" args))
+(defun magit-stgit--new (&optional name &rest args)
+  "Invoke `stg new ARGS... NAME'.
+
+If NAME is nil, let `stg new' read the name using the editor.
+
+If called interactively, read NAME from the minibuffer."
+  (interactive (cons (let ((name (read-string "Patch name: ")))
+                       (and (not (string= name "")) name))
+                     (transient-args 'magit-stgit-new)))
+  (magit-run-stgit-async "new" args name))
 
 (magit-define-popup magit-stgit-edit-popup
   "Popup console for StGit edit."
@@ -637,7 +641,7 @@ the To, Cc, and Bcc fields for all patches."
     ["Initialize" magit-stgit-init
      :help "Initialize StGit support for the current branch"]
     "---"
-    ["Create new patch" magit-stgit-new-popup
+    ["Create new patch" magit-stgit-new
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
