@@ -271,7 +271,7 @@ one from the minibuffer, and move to the next line."
     ("RET" "Show"         magit-stgit-show)]
    [("e"   "Edit"         magit-stgit-edit)
     ("n"   "Rename"       magit-stgit-rename)
-    ("k"   "Delete"       magit-stgit-delete-popup)]
+    ("k"   "Delete"       magit-stgit-delete)]
    [("m"   "Mail patches" magit-stgit-mail-popup)]])
 
 ;;;###autoload
@@ -502,37 +502,40 @@ and ask whether to update the remote first."
     (message "Updating remote...done"))
   (magit-run-stgit "rebase" args (format "remotes/%s/%s" remote branch)))
 
-(magit-define-popup magit-stgit-delete-popup
-  "Popup console for StGit delete."
-  'magit-stgit-commands
-  :switches '((?s "Spill patch contents to worktree and index" "--spill"))
-  :actions  '((?k  "Delete"  magit-stgit-delete))
-  :default-action #'magit-stgit-delete)
+(transient-define-prefix magit-stgit-delete ()
+  "Delete a set of patches."
+  :man-page "stg-delete"
+  ["Arguments"
+   ("-s" "Spill patch contents to worktree and index" "--spill")]
+  ["Actions"
+   ("k" "Delete" magit-stgit--delete)])
 
 ;;;###autoload
-(defun magit-stgit-delete (patches &rest args)
-  "Delete StGit patches.
-Argument PATCHES is a list of patchnames.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Delete patch")
-                     (magit-stgit-delete-arguments)))
-  (let ((affected-files
-         (-mapcat (lambda (patch)
-                    (magit-stgit-lines "files" "--bare" patch))
-                  patches)))
-    (when (and (called-interactively-p 'any)
-               (not magit-current-popup)
-               (and affected-files (y-or-n-p "Spill contents? ")))
-      (setq args (append args (list "--spill")))))
-  (let ((spill (member "--spill" args)))
-    (when spill
-      (setq spill (list "--spill")))
+(defun magit-stgit--delete (patches &rest args)
+  "Invoke `stg delete ARGS... PATCHES...'.
+
+If called interactively, delete the patches around point or read
+one from the minibuffer. Ask whether to spill the contents and
+ask for confirmation before deleting."
+  (interactive (cons (magit-stgit-read-patches t t t t "Delete patch")
+                     (transient-args 'magit-stgit-delete)))
+  (let* ((non-empty-p (-some (-cut magit-stgit-lines "files" "--bare" <>)
+                             patches))
+         (args (if (and (called-interactively-p 'any)
+                        (not transient-current-prefix)
+                        non-empty-p
+                        (y-or-n-p "Spill contents? "))
+                   (cons "--spill" args)
+                 args))
+         (spillp (member "--spill" args)))
     (when (or (not (called-interactively-p 'any))
-              (yes-or-no-p (format "Delete%s patch%s %s? "
-                                   (if spill " and spill" "")
-                                   (if (> (length patches) 1) "es" "")
-                                   (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
-      (magit-run-stgit-and-mark-remove patches "delete" args "--" patches))))
+              (yes-or-no-p
+               (format "Delete%s patch%s %s? "
+                       (if spillp " and spill" "")
+                       (if (> (length patches) 1) "es" "")
+                       (mapconcat (lambda (patch) (format "`%s'" patch))
+                        patches ", "))))
+      (magit-run-stgit-and-mark-remove patches "delete" args patches))))
 
 (magit-define-popup magit-stgit-goto-popup
   "Popup console for StGit goto."
@@ -694,7 +697,7 @@ the To, Cc, and Bcc fields for all patches."
      :help "Permanently store the base patch into the stack base"]
     ["Uncommit patch" magit-stgit-uncommit
      :help "Turn a regular commit into an StGit patch"]
-    ["Delete patch" magit-stgit-delete-popup
+    ["Delete patch" magit-stgit-delete
      :help "Delete an StGit patch"]
     "---"
     ["Float patch" magit-stgit-float
@@ -723,7 +726,7 @@ the To, Cc, and Bcc fields for all patches."
 
 (defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "k"  'magit-stgit-delete)
+    (define-key map "k" #'magit-stgit--delete)
     (define-key map "a"  'magit-stgit-goto)
     (define-key map (kbd "RET") #'magit-stgit-show)
     (define-key map "#" #'magit-stgit-mark-toggle)
