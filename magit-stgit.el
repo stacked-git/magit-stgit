@@ -205,8 +205,8 @@ REQUIRE-MATCH."
     (or (and use-marks intersection)
         region
         (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
-        (list (or (and use-point (magit-section-value-if 'stgit-patch))
-                  (and prompt (magit-stgit-read-patch prompt require-match)))))))
+        (and use-point (-list (magit-section-value-if 'stgit-patch)))
+        (and prompt (-list (magit-stgit-read-patch prompt require-match))))))
 
 (defun magit-stgit-mark-contains (patch)
   "Return whether the given PATCH is marked."
@@ -259,7 +259,7 @@ one from the minibuffer, and move to the next line."
     ("f"   "Float"        magit-stgit-float)
     ("s"   "Sink"         magit-stgit-sink)
     ("a"   "Goto"         magit-stgit-goto-popup)]
-   [("c"   "Commit"       magit-stgit-commit-popup)
+   [("c"   "Commit"       magit-stgit-commit)
     ("C"   "Uncommit"     magit-stgit-uncommit-popup)
     ("r"   "Repair"       magit-stgit-repair)
     ("R"   "Rebase"       magit-stgit-rebase-popup)]
@@ -388,23 +388,39 @@ minibuffer as well."
     (magit-run-stgit-and-mark-remove
      patches (and target (list "-t" target)) "sink" args patches)))
 
-(magit-define-popup magit-stgit-commit-popup
-  "Popup console for StGit commit."
-  'magit-stgit-commands
-  :switches '((?a "Commit all applied patches" "--all"))
-  :options  '((?n "Commit the specified number of patches" "--number=" read-number))
-  :actions  '((?c  "Commit"  magit-stgit-commit))
-  :default-action #'magit-stgit-commit)
+(transient-define-prefix magit-stgit-commit ()
+  "Commit a set of patches."
+  :man-page "stg-commit"
+  ["Arguments"
+   ("-a" "Commit all applied patches" "--all")
+   ("-n" "Commit the first N patches from the bottom up" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))]
+  ["Actions"
+   ("c" "Commit" magit-stgit--commit)])
+
+(defun magit-stgit--commit-need-patches-p (args)
+  (and (not (member "--all" args))
+       (not (member "--number" args))
+       (not (transient-arg-value "--number=" args))))
 
 ;;;###autoload
-(defun magit-stgit-commit (patches &rest args)
-  "Permanently store patches into the stack base."
-  (interactive (list (magit-stgit-read-patches t t t t nil)
-                     (magit-stgit-commit-arguments)))
-  (when (and (member "--all" (car args))
-             (= 1 (length patches)))
-    (setq patches (list nil)))
-  (magit-run-stgit-and-mark-remove patches "commit" args "--" patches))
+(defun magit-stgit--commit (patches &rest args)
+  "Invoke `stg commit ARGS... PATCHES...'.
+
+If PATCHES is nil, commit the bottommost patch.
+
+PATCHES is ignored if ARGS contains `--all' or `--number'.
+
+If called interactively, commit the patches around point or read
+one from the minibuffer."
+  (interactive (let ((args (transient-args 'magit-stgit-commit)))
+                 (cons (and (magit-stgit--commit-need-patches-p args)
+                            (magit-stgit-read-patches t t t t "Commit patch"))
+                       args)))
+  (let ((patches (and (magit-stgit--commit-need-patches-p args)
+                      (or patches (error "No patches provided")))))
+    (magit-run-stgit-and-mark-remove patches "commit" args patches)))
 
 (magit-define-popup magit-stgit-uncommit-popup
   "Popup console for StGit uncommit."
@@ -663,7 +679,7 @@ the To, Cc, and Bcc fields for all patches."
      :help "Rename a patch"]
     ["Edit patch" magit-stgit-edit
      :help "Edit a patch"]
-    ["Commit patch" magit-stgit-commit-popup
+    ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
     ["Uncommit patch" magit-stgit-uncommit-popup
      :help "Turn a regular commit into an StGit patch"]
