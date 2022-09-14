@@ -262,7 +262,7 @@ one from the minibuffer, and move to the next line."
    [("c"   "Commit"       magit-stgit-commit)
     ("C"   "Uncommit"     magit-stgit-uncommit)
     ("r"   "Repair"       magit-stgit-repair)
-    ("R"   "Rebase"       magit-stgit-rebase-popup)]
+    ("R"   "Rebase"       magit-stgit-rebase)]
    [("z"   "Undo"         magit-stgit-undo-popup)
     ("Z"   "Redo"         magit-stgit-redo-popup)]]
   ["Patch"
@@ -474,28 +474,33 @@ into the series."
   (magit-run-stgit "repair")
   (message "Repairing series...done"))
 
-(magit-define-popup magit-stgit-rebase-popup
-  "Popup console for StGit rebase."
-  'magit-stgit-commands
-  :switches '((?n "Do not push the patches back after rebasing" "--nopush")
-              (?m "Check for patches merged upstream"           "--merged"))
-  :actions  '((?R  "Rebase"  magit-stgit-rebase))
-  :default-action #'magit-stgit-rebase)
+(transient-define-prefix magit-stgit-rebase ()
+  "Rebase the stack."
+  :man-page "stg-rebase"
+  ["Arguments"
+   ("-n" "Do not push the patches back after rebasing" "--nopush")
+   ("-m" "Check for patches merged upstream" "--merged")]
+  ["Actions"
+   ("R" "Rebase" magit-stgit--rebase)])
 
 ;;;###autoload
-(defun magit-stgit-rebase (&rest args)
-  "Rebase a StGit patch series.
-Use ARGS to pass additional arguments"
-  (interactive (magit-stgit-rebase-arguments))
-  (let* ((branch (magit-get-current-branch))
-         (remote (magit-get-remote branch)))
-    (if (not (and remote branch))
-        (user-error "Branch has no upstream")
-      (when (y-or-n-p "Update remote first? ")
-        (message "Updating remote...")
-        (magit-run-git-async "remote" "update" remote)
-        (message "Updating remote...done"))
-      (magit-run-stgit "rebase" args "--" (format "remotes/%s/%s" remote branch)))))
+(defun magit-stgit--rebase (remote branch &rest args)
+  "Invoke `stg rebase ARGS... remotes/REMOTE/BRANCH'.
+
+If called interactively, use the current branch and its remote,
+and ask whether to update the remote first."
+  (interactive (append (let* ((branch (magit-get-current-branch))
+                              (remote (magit-get-remote branch)))
+                         (if (and remote branch)
+                             (list remote branch)
+                           (user-error "Branch has no upstream")))
+                       (transient-args 'magit-stgit-rebase)))
+  (when (and (called-interactively-p 'any)
+             (y-or-n-p "Update remote first? "))
+    (message "Updating remote...")
+    (magit-run-git-async "remote" "update" remote)
+    (message "Updating remote...done"))
+  (magit-run-stgit "rebase" args (format "remotes/%s/%s" remote branch)))
 
 (magit-define-popup magit-stgit-delete-popup
   "Popup console for StGit delete."
@@ -701,7 +706,7 @@ the To, Cc, and Bcc fields for all patches."
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
-    ["Rebase series" magit-stgit-rebase-popup
+    ["Rebase series" magit-stgit-rebase
      :help "Rebase an StGit patch series"]
     "---"
     ["Undo the last operation" magit-stgit-undo-popup
