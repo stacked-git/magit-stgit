@@ -264,7 +264,7 @@ one from the minibuffer, and move to the next line."
     ("r"   "Repair"       magit-stgit-repair)
     ("R"   "Rebase"       magit-stgit-rebase)]
    [("z"   "Undo"         magit-stgit-undo)
-    ("Z"   "Redo"         magit-stgit-redo-popup)]]
+    ("Z"   "Redo"         magit-stgit-redo)]]
   ["Patch"
    [("N"   "New"          magit-stgit-new)
     ("g"   "Refresh"      magit-stgit-refresh)
@@ -576,19 +576,21 @@ ask for confirmation before deleting."
   (interactive (transient-args 'magit-stgit-undo))
   (magit-run-stgit "undo" args))
 
-(magit-define-popup magit-stgit-redo-popup
-  "Popup console for StGit redo."
-  'magit-stgit-commands
-  :options  '((?n "Undo the last N commands" "--number=" read-number))
-  :switches '((?h "Discard changes in index/worktree" "--hard"))
-  :actions  '((?Z  "Redo"  magit-stgit-redo))
-  :default-action #'magit-stgit-redo)
+(transient-define-prefix magit-stgit-redo ()
+  "Undo a previous undo operation."
+  :man-page "stg-redo"
+  ["Arguments"
+   ("-n" "Undo the last N undos" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))
+   ("-h" "Discard changes in index/worktree" "--hard")]
+  ["Actions"
+   ("Z" "Redo" magit-stgit--redo)])
 
 ;;;###autoload
-(defun magit-stgit-redo (&rest args)
-  "Undo the last undo operation.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-redo-arguments))
+(defun magit-stgit--redo (&rest args)
+  "Invoke `stg redo ARGS...'."
+  (interactive (transient-args 'magit-stgit-redo))
   (magit-run-stgit "redo" args))
 
 ;;;; magit-stgit-mail
@@ -716,8 +718,8 @@ the To, Cc, and Bcc fields for all patches."
     "---"
     ["Undo stack operation" magit-stgit-undo
      :help "Undo a previous stack operation"]
-    ["Undo the last undo operation" magit-stgit-redo-popup
-     :help "Undo the last undo operation"]))
+    ["Redo stack operation" magit-stgit-redo
+     :help "Undo a previous undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
