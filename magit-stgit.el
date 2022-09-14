@@ -263,7 +263,7 @@ one from the minibuffer, and move to the next line."
     ("C"   "Uncommit"     magit-stgit-uncommit)
     ("r"   "Repair"       magit-stgit-repair)
     ("R"   "Rebase"       magit-stgit-rebase)]
-   [("z"   "Undo"         magit-stgit-undo-popup)
+   [("z"   "Undo"         magit-stgit-undo)
     ("Z"   "Redo"         magit-stgit-redo-popup)]]
   ["Patch"
    [("N"   "New"          magit-stgit-new)
@@ -559,19 +559,21 @@ ask for confirmation before deleting."
   (interactive (magit-stgit-read-patches nil nil t t "Show patch"))
   (magit-show-commit (car (magit-stgit-lines "id" patch))))
 
-(magit-define-popup magit-stgit-undo-popup
-  "Popup console for StGit undo."
-  'magit-stgit-commands
-  :options  '((?n "Undo the last N commands" "--number=" read-number))
-  :switches '((?h "Discard changes in index/worktree" "--hard"))
-  :actions  '((?z  "Undo"  magit-stgit-undo))
-  :default-action #'magit-stgit-undo)
+(transient-define-prefix magit-stgit-undo ()
+  "Undo a previous stack operation."
+  :man-page "stg-undo"
+  ["Arguments"
+   ("-n" "Undo the last N operations" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))
+   ("-h" "Discard changes in index/worktree" "--hard")]
+  ["Actions"
+   ("z"  "Undo" magit-stgit--undo)])
 
 ;;;###autoload
-(defun magit-stgit-undo (&rest args)
-  "Undo the last operation.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-undo-arguments))
+(defun magit-stgit--undo (&rest args)
+  "Invoke `stg undo ARGS...'."
+  (interactive (transient-args 'magit-stgit-undo))
   (magit-run-stgit "undo" args))
 
 (magit-define-popup magit-stgit-redo-popup
@@ -712,8 +714,8 @@ the To, Cc, and Bcc fields for all patches."
     ["Rebase series" magit-stgit-rebase
      :help "Rebase an StGit patch series"]
     "---"
-    ["Undo the last operation" magit-stgit-undo-popup
-     :help "Undo the last operation"]
+    ["Undo stack operation" magit-stgit-undo
+     :help "Undo a previous stack operation"]
     ["Undo the last undo operation" magit-stgit-redo-popup
      :help "Undo the last undo operation"]))
 
