@@ -256,7 +256,7 @@ one from the minibuffer, and move to the next line."
   :man-page "stg"
   ["Stack"
    [("i"   "Init"         magit-stgit-init)
-    ("f"   "Float"        magit-stgit-float-popup)
+    ("f"   "Float"        magit-stgit-float)
     ("s"   "Sink"         magit-stgit-sink-popup)
     ("a"   "Goto"         magit-stgit-goto-popup)]
    [("c"   "Commit"       magit-stgit-commit-popup)
@@ -331,20 +331,23 @@ the minibuffer."
                      (transient-args 'magit-stgit-edit)))
   (magit-run-stgit-async "edit" "--edit" args patch))
 
-(magit-define-popup magit-stgit-float-popup
-  "Popup console for StGit float."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes" "--keep"))
-  :actions  '((?f  "Float"  magit-stgit-float))
-  :default-action #'magit-stgit-float)
+(transient-define-prefix magit-stgit-float ()
+  "Move a set of patches toward the top of the stack."
+  :man-page "stg-float"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")]
+  ["Actions"
+   ("f" "Float" magit-stgit--float)])
 
 ;;;###autoload
-(defun magit-stgit-float (patches &rest args)
-  "Float StGit PATCHES to the top.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Float patch")
-                     (magit-stgit-float-arguments)))
-  (magit-run-stgit-and-mark-remove patches "float" args "--" patches))
+(defun magit-stgit--float (patches &rest args)
+  "Invoke `stg float ARGS... PATCHES...'.
+
+If called interactively, float the patches around point or read
+one from the minibuffer."
+  (interactive (cons (magit-stgit-read-patches t t t t "Float patch")
+                     (transient-args 'magit-stgit-float)))
+  (magit-run-stgit-and-mark-remove patches "float" args patches))
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
@@ -362,7 +365,7 @@ Use ARGS to pass additional arguments."
                   "--to="
                   (lambda (prompt &optional default) (magit-stgit-read-patch prompt t))))
   :actions  '((?s  "Sink"  magit-stgit-sink))
-  :default-action #'magit-stgit-float)
+  :default-action #'magit-stgit--float)
 
 ;;;###autoload
 (defun magit-stgit-sink (patches &rest args)
@@ -659,7 +662,7 @@ the To, Cc, and Bcc fields for all patches."
     ["Delete patch" magit-stgit-delete-popup
      :help "Delete an StGit patch"]
     "---"
-    ["Float patch" magit-stgit-float-popup
+    ["Float patch" magit-stgit-float
      :help "Float StGit patch to the top"]
     ["Sink patch" magit-stgit-sink-popup
      :help "Sink StGit patch deeper down the stack"]
