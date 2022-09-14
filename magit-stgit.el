@@ -258,7 +258,7 @@ one from the minibuffer, and move to the next line."
    [("i"   "Init"         magit-stgit-init)
     ("f"   "Float"        magit-stgit-float)
     ("s"   "Sink"         magit-stgit-sink)
-    ("a"   "Goto"         magit-stgit-goto-popup)]
+    ("a"   "Goto"         magit-stgit-goto)]
    [("c"   "Commit"       magit-stgit-commit)
     ("C"   "Uncommit"     magit-stgit-uncommit)
     ("r"   "Repair"       magit-stgit-repair)
@@ -537,21 +537,21 @@ ask for confirmation before deleting."
                         patches ", "))))
       (magit-run-stgit-and-mark-remove patches "delete" args patches))))
 
-(magit-define-popup magit-stgit-goto-popup
-  "Popup console for StGit goto."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes"            "--keep")
-              (?m "Check for patches merged upstream" "--merged"))
-  :actions  '((?a  "Goto"  magit-stgit-goto))
-  :default-action #'magit-stgit-goto)
+(transient-define-prefix magit-stgit-goto ()
+  "Make an arbitrary patch current."
+  :man-page "stg-goto"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")
+   ("-m" "Check for patches merged upstream" "--merged")]
+  ["Actions"
+   ("a" "Goto" magit-stgit--goto)])
 
 ;;;###autoload
-(defun magit-stgit-goto (patch &rest args)
-  "Set PATCH as target of StGit push and pop operations.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t t "Goto patch")
-                     (magit-stgit-goto-arguments)))
-  (magit-run-stgit "goto" patch args))
+(defun magit-stgit--goto (patch &rest args)
+  "Invoke `stg goto ARGS... PATCH'."
+  (interactive (cons (car (magit-stgit-read-patches nil nil t t "Goto patch"))
+                     (transient-args 'magit-stgit-goto)))
+  (magit-run-stgit "goto" args patch))
 
 ;;;###autoload
 (defun magit-stgit-show (patch)
@@ -727,7 +727,7 @@ the To, Cc, and Bcc fields for all patches."
 (defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
     (define-key map "k" #'magit-stgit--delete)
-    (define-key map "a"  'magit-stgit-goto)
+    (define-key map "a" #'magit-stgit--goto)
     (define-key map (kbd "RET") #'magit-stgit-show)
     (define-key map "#" #'magit-stgit-mark-toggle)
     map))
