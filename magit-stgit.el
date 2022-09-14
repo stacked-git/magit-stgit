@@ -269,7 +269,7 @@ one from the minibuffer, and move to the next line."
    [("N"   "New"          magit-stgit-new)
     ("g"   "Refresh"      magit-stgit-refresh-popup)
     ("RET" "Show"         magit-stgit-show)]
-   [("e"   "Edit"         magit-stgit-edit-popup)
+   [("e"   "Edit"         magit-stgit-edit)
     ("n"   "Rename"       magit-stgit-rename)
     ("k"   "Delete"       magit-stgit-delete-popup)]
    [("m"   "Mail patches" magit-stgit-mail-popup)]])
@@ -310,21 +310,26 @@ If called interactively, read NAME from the minibuffer."
                      (transient-args 'magit-stgit-new)))
   (magit-run-stgit-async "new" args name))
 
-(magit-define-popup magit-stgit-edit-popup
-  "Popup console for StGit edit."
-  'magit-stgit-commands
-  :switches '((?s "Add \"Signed-off-by:\" line" "--sign")
-              (?a "Add \"Acked-by:\" line" "--ack"))
-  :actions  '((?e  "Edit"  magit-stgit-edit))
-  :default-action #'magit-stgit-edit)
+(transient-define-prefix magit-stgit-edit ()
+  "Edit the description of an existing patch."
+  :man-page "stg-edit"
+  ["Arguments"
+   ("-s" "Add Signed-off-by" "--sign")
+   ("-a" "Add Acked-by" "--ack")]
+  ["Actions"
+   ("e" "Edit" magit-stgit--edit)])
 
 ;;;###autoload
-(defun magit-stgit-edit (patch &rest args)
-  "Edit the description of an existing StGit PATCH.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t nil "Edit patch (default is top)")
-                     (magit-stgit-edit-arguments)))
-  (magit-run-stgit-async "edit" "--edit" args "--" patch))
+(defun magit-stgit--edit (&optional patch &rest args)
+  "Invoke `stg edit ARGS... PATCH'.
+
+If PATCH is nil, edit the current patch.
+
+If called interactively, edit the patch at point or read one from
+the minibuffer."
+  (interactive (cons (car (magit-stgit-read-patches nil nil t t "Edit patch"))
+                     (transient-args 'magit-stgit-edit)))
+  (magit-run-stgit-async "edit" "--edit" args patch))
 
 (magit-define-popup magit-stgit-float-popup
   "Popup console for StGit float."
@@ -645,7 +650,7 @@ the To, Cc, and Bcc fields for all patches."
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
-    ["Edit patch" magit-stgit-edit-popup
+    ["Edit patch" magit-stgit-edit
      :help "Edit a patch"]
     ["Commit patch" magit-stgit-commit-popup
      :help "Permanently store the base patch into the stack base"]
