@@ -257,7 +257,7 @@ one from the minibuffer, and move to the next line."
   ["Stack"
    [("i"   "Init"         magit-stgit-init)
     ("f"   "Float"        magit-stgit-float)
-    ("s"   "Sink"         magit-stgit-sink-popup)
+    ("s"   "Sink"         magit-stgit-sink)
     ("a"   "Goto"         magit-stgit-goto-popup)]
    [("c"   "Commit"       magit-stgit-commit-popup)
     ("C"   "Uncommit"     magit-stgit-uncommit-popup)
@@ -360,28 +360,33 @@ minibuffer."
          (read-from-minibuffer "New name: ")))
   (magit-run-stgit "rename" oldname newname))
 
-(magit-define-popup magit-stgit-sink-popup
-  "Popup console for StGit sink."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes" "--keep"))
-  :options  '((?t "Sink patches below the target patch (else to bottom)"
-                  "--to="
-                  (lambda (prompt &optional default) (magit-stgit-read-patch prompt t))))
-  :actions  '((?s  "Sink"  magit-stgit-sink))
-  :default-action #'magit-stgit--float)
+(transient-define-prefix magit-stgit-sink ()
+  "Move a set of patches toward the bottom of the stack."
+  :man-page "stg-sink"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")
+   ("-t" "Sink patches below target" "--to="
+    :reader (lambda (_prompt _initial-input _history)
+              (magit-stgit-read-patch "Sink below" t)))]
+  ["Actions"
+   ("s" "Sink" magit-stgit--sink)])
 
 ;;;###autoload
-(defun magit-stgit-sink (patches &rest args)
-  "Sink StGit PATCHES deeper down the stack.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Sink patch")
-                     (magit-stgit-sink-arguments)))
-  (when (and (called-interactively-p 'any)
-             (not magit-current-popup))
-    (let ((target (magit-stgit-read-patch "Target patch (default is bottom)")))
-      (when target
-        (setq args (append args (list "-t" target))))))
-  (magit-run-stgit-and-mark-remove patches "sink" args "--" patches))
+(defun magit-stgit--sink (&optional patches &rest args)
+  "Invoke `stg sink ARGS... PATCHES...'.
+
+If PATCHES is nil, sink the current patch.
+
+If called interactively, sink the patches around point or read
+one from the minibuffer. Read the target patch from the
+minibuffer as well."
+  (interactive (cons (magit-stgit-read-patches t t t t "Sink patch")
+                     (transient-args 'magit-stgit-sink)))
+  (let ((target (and (called-interactively-p 'any)
+                     (not transient-current-prefix)
+                     (magit-stgit-read-patch "Sink below" t))))
+    (magit-run-stgit-and-mark-remove
+     patches (and target (list "-t" target)) "sink" args patches)))
 
 (magit-define-popup magit-stgit-commit-popup
   "Popup console for StGit commit."
@@ -667,7 +672,7 @@ the To, Cc, and Bcc fields for all patches."
     "---"
     ["Float patch" magit-stgit-float
      :help "Float StGit patch to the top"]
-    ["Sink patch" magit-stgit-sink-popup
+    ["Sink patch" magit-stgit-sink
      :help "Sink StGit patch deeper down the stack"]
     "---"
     ["Refresh patch" magit-stgit-refresh-popup
