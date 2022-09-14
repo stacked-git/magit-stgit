@@ -4,7 +4,7 @@ This package provides very basic support for StGit.
 
 StGit (Stacked Git) is an application that aims to provide a
 convenient way to maintain a patch stack on top of a Git branch.
-For more information about StGit see http://www.procode.org/stgit.
+For more information about StGit see http://stacked-git.github.io.
 
 When `magit-stgit-mode` is turned on then the current patch series
 is displayed in the status buffer.  While point is on a patch the
