@@ -351,7 +351,10 @@ one from the minibuffer."
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
-  "Rename StGit patch OLDNAME to NEWNAME."
+  "Invoke `stg rename OLDNAME NEWNAME'.
+
+If called interactively, read OLDNAME and NEWNAME from the
+minibuffer."
   (interactive
    (list (magit-stgit-read-patch "Patch to rename" t)
          (read-from-minibuffer "New name: ")))
