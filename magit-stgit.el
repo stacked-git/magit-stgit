@@ -272,7 +272,7 @@ one from the minibuffer, and move to the next line."
    [("e"   "Edit"         magit-stgit-edit)
     ("n"   "Rename"       magit-stgit-rename)
     ("k"   "Delete"       magit-stgit-delete)]
-   [("m"   "Mail patches" magit-stgit-mail-popup)]])
+   [("m"   "Mail patches" magit-stgit-mail)]])
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -595,66 +595,70 @@ ask for confirmation before deleting."
 
 ;;;; magit-stgit-mail
 
-(magit-define-popup magit-stgit-mail-popup
-  "Popup console for StGit mail."
-  'magit-stgit-commands
+(transient-define-prefix magit-stgit-mail ()
+  "Send a set of patches by e-mail."
+  :value '("--git" "--auto-recipients")
   :man-page "stg-mail"
-  :switches '((?m "Generate an mbox file instead of sending" "--mbox")
-              (?g "Use git send-email" "--git" t)
-              (?e "Edit cover letter before send" "--edit-cover")
-              (?a "Auto-detect recipients for each patch" "--auto")
-              (?A "Auto-detect To, Cc and Bcc for all patches from cover"
-                  "--auto-recipients" t))
-  :options '((?o "Set file as cover message" "--cover="
-                 (lambda (prompt default) (read-file-name "Find file: " default)))
-             (?v "Add version to [PATCH ...]" "--version=")
-             (?p "Add prefix to [... PATCH ...]" "--prefix=")
-             (?t "Mail To" "--to=")
-             (?c "Mail Cc" "--cc=")
-             (?b "Mail Bcc:" "--bcc="))
-  :actions '((?m "Send" magit-stgit-mail)))
+  ["Arguments"
+   ("-m" "Generate an mbox file instead of sending" "--mbox")
+   ("-g" "Use git send-email" "--git")
+   ("-e" "Edit cover letter before sending" "--edit-cover")
+   ("-a" "Automatically Cc the patch signers" "--auto")
+   ("-A" "Auto-detect To, Cc and Bcc for all patches from cover"
+    "--auto-recipients")
+   ""
+   ("-o" "Set file as cover message" "--cover="
+    :reader (lambda (_prompt initial-input _history)
+              (read-file-name "Find file: " nil nil nil initial-input)))
+   ("-v" "Add version to [PATCH ...]" "--version=")
+   ("-p" "Add prefix to [... PATCH ...]" "--prefix=")
+   ("-t" "Mail To" "--to=")
+   ("-c" "Mail Cc" "--cc=")
+   ("-b" "Mail Bcc" "--bcc=")]
+  ["Actions"
+   ("m" "Send" magit-stgit--mail)])
+
+(defun magit-stgit--mail-recipients (&optional cover)
+  "Return a list of zero or one of each of `--to', `--cc' and
+`--bcc' arguments for `stg mail', with the values determined from
+the cover letter file COVER, or the current buffer if COVER is
+nil."
+  (let ((buffer (current-buffer))
+        (fields '()))
+    (with-temp-buffer
+      (if cover
+          (insert-file-contents cover)
+        (insert-buffer-substring buffer))
+      (goto-char (point-min))
+      (while (re-search-forward (rx (group (or "To" "Cc" "Bcc")) ":" (+ blank)
+                                    (group (* nonl)) (* blank) eol)
+                                nil t)
+        (let ((field (match-string 1))
+              (recipient (match-string 2)))
+          (when (string-match "<" recipient)
+            (setf (alist-get field fields nil nil #'equal) recipient)))))
+    (cl-loop for (field . recipient) in fields
+             collect (format "--%s=\"%s\"" (downcase field) recipient))))
 
 ;;;###autoload
-(defun magit-stgit-mail (patches &rest args)
-  "Send PATCHES with \"stg mail\".
+(defun magit-stgit--mail (patches &rest args)
+  "Invoke `stg mail ARGS... -- PATCHES...'.
 
-If a cover is specified, it will be searched to automatically set
-the To, Cc, and Bcc fields for all patches."
-  (interactive (list (magit-stgit-read-patches t t t t "Send patch")
-                     (magit-stgit-mail-arguments)))
-  (setq args (-flatten args))           ; nested list when called from popup
-  (let* ((auto "--auto-recipients")
-         (have-auto (member auto args))
-         (cover (car (delq nil (mapcar (lambda (arg)
-                                         (if (string-prefix-p "--cover=" arg)
-                                             arg nil))
-                                       args))))
-         (cover-pos -1))
-    (when have-auto
-      (setq args (delete auto args)))
-    (when (and have-auto cover)
-      (setq cover (substring cover 8))
-      (setq cover (with-temp-buffer (insert-file-contents cover)
-                                    (buffer-string)))
-      (while (setq cover-pos
-                   (string-match
-                        "^\\(To\\|Cc\\|Bcc\\):[[:space:]]+\\(.*\\)[[:space:]]*$"
-                        cover (1+ cover-pos)))
-        (let ((field (match-string 1 cover))
-              (recipient (match-string 2 cover)))
-          (setq field (match-string 1 cover))
-          (when (string-match "<" recipient)
-            (setq recipient (format "\"%s\"" recipient)))
-          (cond ((equal field "To")
-                 (setq args (cons (format "--to=%s" recipient)
-                                  args)))
-                ((equal field "Cc")
-                 (setq args (cons (format "--cc=%s" recipient)
-                                  args)))
-                ((equal field "Bcc")
-                 (setq args (cons (format "--bcc=%s" recipient)
-                                  args)))))))
-    (magit-run-stgit-async "mail" args patches)))
+ARGS can contain the fake argument `--auto-recipients' which is
+not passed to `stg mail'. If the argument is specified and
+`--cover' is present in ARGS, the cover letter will be searched
+to automatically set the values of `--to', `--cc' and `--bcc'.
+
+If called interactively, mail the patches around point or read
+one from the minibuffer."
+  (interactive (cons (magit-stgit-read-patches t t t t "Send patch")
+                     (transient-args 'magit-stgit-mail)))
+  (let* ((autop (member "--auto-recipients" args))
+         (args (remove "--auto-recipients" args))
+         (cover (transient-arg-value "--cover=" args)))
+    (magit-run-stgit-async
+     "mail" args (and autop cover (magit-stgit--mail-recipients cover))
+     "--" patches)))
 
 ;;; Mode
 
