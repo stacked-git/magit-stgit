@@ -260,7 +260,7 @@ one from the minibuffer, and move to the next line."
     ("s"   "Sink"         magit-stgit-sink)
     ("a"   "Goto"         magit-stgit-goto-popup)]
    [("c"   "Commit"       magit-stgit-commit)
-    ("C"   "Uncommit"     magit-stgit-uncommit-popup)
+    ("C"   "Uncommit"     magit-stgit-uncommit)
     ("r"   "Repair"       magit-stgit-repair)
     ("R"   "Rebase"       magit-stgit-rebase-popup)]
    [("z"   "Undo"         magit-stgit-undo-popup)
@@ -422,17 +422,20 @@ one from the minibuffer."
                       (or patches (error "No patches provided")))))
     (magit-run-stgit-and-mark-remove patches "commit" args patches)))
 
-(magit-define-popup magit-stgit-uncommit-popup
-  "Popup console for StGit uncommit."
-  'magit-stgit-commands
-  :options  '((?n "Uncommit the specified number of commits" "--num=" read-number))
-  :actions  '((?C  "Uncommit"  magit-stgit-uncommit))
-  :default-action #'magit-stgit-uncommit)
+(transient-define-prefix magit-stgit-uncommit ()
+  "Uncommit a set of patches."
+  :man-page "stg-uncommit"
+  ["Arguments"
+   ("-n" "Uncommit the first N commits from the base down" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))]
+  ["Actions"
+   ("C" "Uncommit" magit-stgit--uncommit)])
 
 ;;;###autoload
-(defun magit-stgit-uncommit (&rest args)
-  "Turn regular commits into StGit patches."
-  (interactive (-flatten (list (magit-stgit-uncommit-arguments))))
+(defun magit-stgit--uncommit (&rest args)
+  "Invoke `stg uncommit ARGS...'."
+  (interactive (transient-args 'magit-stgit-uncommit))
   (magit-run-stgit "uncommit" args))
 
 (magit-define-popup magit-stgit-refresh-popup
@@ -681,7 +684,7 @@ the To, Cc, and Bcc fields for all patches."
      :help "Edit a patch"]
     ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
-    ["Uncommit patch" magit-stgit-uncommit-popup
+    ["Uncommit patch" magit-stgit-uncommit
      :help "Turn a regular commit into an StGit patch"]
     ["Delete patch" magit-stgit-delete-popup
      :help "Delete an StGit patch"]
