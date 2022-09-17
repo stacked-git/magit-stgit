@@ -7,7 +7,7 @@
 ;; Keywords: vc tools
 
 ;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0") (transient "0.3.7"))
+;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (transient "0.3.7"))
 
 ;; Magit-StGit is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
@@ -61,7 +61,6 @@
 (require 'dash)
 
 (require 'magit)
-(require 'magit-popup)
 (require 'transient)
 
 ;;; Options
@@ -70,10 +69,6 @@
 (defgroup magit-stgit nil
   "StGit support for Magit."
   :group 'magit-extensions)
-
-(defgroup magit-stgit-commands nil
-  "Options controlling behavior of certain commands."
-  :group 'magit-stgit)
 
 (defcustom magit-stgit-executable "stg"
   "The name of the StGit executable."
