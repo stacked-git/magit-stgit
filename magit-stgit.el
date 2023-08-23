@@ -259,6 +259,7 @@ one from the minibuffer, and move to the next line."
     ("a"   "Goto"         magit-stgit-goto)]
    [("c"   "Commit"       magit-stgit-commit)
     ("C"   "Uncommit"     magit-stgit-uncommit)
+    ("b"   "Branch"       magit-stgit-branch)
     ("r"   "Repair"       magit-stgit-repair)
     ("R"   "Rebase"       magit-stgit-rebase)]
    [("z"   "Undo"         magit-stgit-undo)
@@ -473,6 +474,67 @@ into the series."
   (message "Repairing series...")
   (magit-run-stgit "repair")
   (message "Repairing series...done"))
+
+(transient-define-prefix magit-stgit-branch ()
+  "Popup console for StGit branch."
+  :man-page "stg-branch"
+  ["Arguments"
+   ("-f" "Force cleanup or deletion even if a branch has patches" "--force")]
+  ["Branch action"
+   ("c"  "Create"  magit-stgit-branch-create)
+   ("C"  "Clone"  magit-stgit-branch-clone)
+   ("m"  "Rename"  magit-stgit-branch-rename)
+   ("p"  "Protect"  magit-stgit-branch-protect)
+   ("u"  "Unprotect"  magit-stgit-branch-unprotect)
+   ("k"  "Delete"  magit-stgit-branch-delete)
+   ("K"  "Cleanup"  magit-stgit-branch-cleanup)])
+
+;;;###autoload
+(defun magit-stgit-branch-create (start branch-name)
+  "Create and switch to a new branch"
+  (interactive (list (magit-read-starting-point "Create and checkout branch")
+                     (read-from-minibuffer "Name for new branch: ")))
+  (magit-run-stgit "branch" "--create" branch-name start))
+
+;;;###autoload
+(defun magit-stgit-branch-clone (target)
+  "Clone the contents of the current branch"
+  (interactive (list (read-from-minibuffer "New branch name: " (magit-get-current-branch))))
+  (magit-run-stgit "branch" "--clone" target))
+
+;;;###autoload
+(defun magit-stgit-branch-rename (old-name new-name)
+  "Rename an existing branch"
+  (interactive (list (magit-read-local-branch "Branch to rename")
+                     (read-from-minibuffer "New branch name: ")))
+  (magit-run-stgit "branch" "--rename" old-name new-name))
+
+;;;###autoload
+(defun magit-stgit-branch-protect (target)
+  "Prevent StGit from modifying a branch"
+  (interactive (list (magit-read-local-branch "Branch to protect")))
+  (magit-run-stgit "branch" "--protect" target))
+
+;;;###autoload
+(defun magit-stgit-branch-unprotect (target)
+  "Allow StGit to modify a previously protected branch"
+  (interactive (list (magit-read-local-branch "Branch to unprotect")))
+  (magit-run-stgit "branch" "--unprotect" target))
+
+;;;###autoload
+(defun magit-stgit-branch-delete (target &rest args)
+  "Invoke `stg uncommit ARGS...'."
+  (interactive (append (list (magit-read-local-branch "Branch to delete"))
+                       (transient-args 'magit-stgit-branch)))
+  (magit-run-stgit "branch" "--delete" target args))
+
+;;;###autoload
+(defun magit-stgit-branch-cleanup (target &rest args)
+  "Invoke `stg uncommit ARGS...'."
+  (interactive (append (list (magit-read-local-branch "Branch to clean up"))
+                       (transient-args 'magit-stgit-branch)))
+  (magit-run-stgit "branch" "--cleanup" target args))
+
 
 (transient-define-prefix magit-stgit-rebase ()
   "Rebase the stack."
