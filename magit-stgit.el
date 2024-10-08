@@ -391,6 +391,7 @@ minibuffer as well."
   :man-page "stg-commit"
   ["Arguments"
    ("-a" "Commit all applied patches" "--all")
+   ("-e" "Allow empty patches to be committed" "--allow-empty")
    ("-n" "Commit the first N patches from the bottom up" "--number="
     :reader (lambda (prompt _initial-input history)
               (number-to-string (read-number prompt nil history))))]
