@@ -8,7 +8,7 @@
 ;; Keywords: git tools vc
 
 ;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (magit-popup "2.12.0"))
+;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (transient "0.3.7"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -43,7 +43,7 @@
 ;; is displayed in the status buffer.  While point is on a patch the
 ;; changes it introduces can be shown using `RET', it can be selected
 ;; as the current patch using `a', and it can be discarded using `k'.
-;; Other StGit commands are available from the StGit popup on `/'.
+;; Other StGit commands are available from the StGit transient on `/'.
 
 ;; To enable the mode in a particular repository use:
 ;;
@@ -64,7 +64,7 @@
 (require 'dash)
 
 (require 'magit)
-(require 'magit-popup)
+(require 'transient)
 
 ;;; Options
 ;;;; Variables
@@ -72,11 +72,6 @@
 (defgroup magit-stgit nil
   "StGit support for Magit."
   :group 'magit-extensions)
-
-(defgroup magit-stgit-commands nil
-  "Options controlling behavior of certain commands."
-  :group 'magit-stgit)
-
 
 (defcustom magit-stgit-executable "stg"
   "The name of the StGit executable."
@@ -178,112 +173,104 @@ Any list in ARGS is flattened."
 
 (defun magit-stgit-patches-sorted (patches)
   "Return elements in PATCHES with the same partial order as the series."
-  (let ((original (magit-stgit-lines "series" "--noprefix"))
-        sorted)
-    (mapc (lambda (patch)
-            (when (member patch patches)
-              (add-to-list 'sorted patch t)))
-          original)
-    sorted))
-
-(defun magit-stgit-read-patches (use-region use-marks use-point require-match prompt)
-  "Return list of selected patches.
-If USE-REGION and there is an active region, return marked
-patches in it (if USE-MARKS), or all patches in the region if
-USE-MARKS is not set or none is marked.
-Else, if USE-MARKS and some patches are marked, return these.
-Else, if USE-POINT, return the patch at point.
-Else, if PROMPT, ask the user for the name of a patch using
-PROMPT."
-  (let* ((region (and use-region (magit-region-values 'stgit-patch)))
-         (intersection (cl-intersection region magit-stgit-marked-patches
-                                        :test #'equal)))
-    (or (and use-marks
-             intersection)
-        region
-        (and use-marks
-             (magit-stgit-patches-sorted magit-stgit-marked-patches))
-        (list (or (and use-point
-                       (if (fboundp 'magit-section-value-if)
-                           (magit-section-value-if 'stgit-patch)
-                         (magit-section-when stgit-patch)))
-                  (and prompt (magit-stgit-read-patch prompt require-match)))))))
+  (mapcan (lambda (patch) (and (member patch patches) (list patch)))
+          (magit-stgit-lines "series" "--noprefix")))
 
 ;;; Marking
 
-(defvar-local magit-stgit-marked-patches nil
-  "Internal list of marked patches.")
+(defvar-local magit-stgit--marked-patches nil
+  "List of currently marked patches.")
+
+(defun magit-stgit-read-patches (use-region use-marks use-point
+                                 require-match prompt)
+  "Return a list of patches selected according to the arguments.
+
+If USE-REGION is non-nil and there is an active region, return
+marked patches in the region if USE-MARKS is non-nil, or all
+patches in the region if USE-MARKS is nil.
+
+Otherwise, if USE-MARKS is non-nil and some patches are marked,
+return those.
+
+Otherwise, if USE-POINT is non-nil, return the patch at point.
+
+Otherwise, if PROMPT is non-nil, ask the user for the name of a
+patch using `magit-stgit-read-patch', passing PROMPT and
+REQUIRE-MATCH."
+  (let* ((region (and use-region (magit-region-values 'stgit-patch)))
+         (intersection (cl-intersection region magit-stgit--marked-patches
+                                        :test #'equal)))
+    (or (and use-marks intersection)
+        region
+        (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
+        (and use-point (-list (magit-section-value-if 'stgit-patch)))
+        (and prompt (-list (magit-stgit-read-patch prompt require-match))))))
 
 (defun magit-stgit-mark-contains (patch)
-  "Whether the given PATCH is marked."
-  (member patch magit-stgit-marked-patches))
+  "Return whether the given PATCH is marked."
+  (member patch magit-stgit--marked-patches))
 
 (defun magit-stgit-mark-add (patches)
-  "Set mark of patches.
-See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  "Add PATCHES to the set of marked patches.
+
+If called interactively, mark the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (add-to-list 'magit-stgit-marked-patches patch))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-union magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
 (defun magit-stgit-mark-remove (patches)
-  "Unset mark of patches.
-See `magit-stgit-mark-toggle' for the meaning of PATCHES."
+  "Remove PATCHES from the set of marked patches.
+
+If called interactively, unmark the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (setq magit-stgit-marked-patches (delete patch magit-stgit-marked-patches)))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-set-difference magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
 (defun magit-stgit-mark-toggle (patches)
-  "Toggle mark of patches.
-If given, PATCHES specifies the patch names.
-Else, if there is an active region, toggles these.
-Else, if point is in an StGit section, toggles the patch at point.
-Else, asks the user for a patch name."
+  "Toggle the marked status of PATCHES, adding or removing each
+from the set of marked patches as necessary.
+
+If called interactively, toggle the patches around point or read
+one from the minibuffer, and move to the next line."
   (interactive (list (magit-stgit-read-patches t nil t t "Patch name")))
-  (mapc (lambda (patch)
-          (if (magit-stgit-mark-contains patch)
-              (magit-stgit-mark-remove (list patch))
-            (magit-stgit-mark-add (list patch))))
-        patches)
+  (setq magit-stgit--marked-patches
+        (cl-set-exclusive-or magit-stgit--marked-patches patches :test #'equal))
   (when (called-interactively-p 'any)
     (forward-line)
     (magit-refresh)))
 
 ;;; Commands
 
-(magit-define-popup magit-stgit-popup
-  "Popup console for StGit commands."
-  'magit-stgit-commands
-  :actions '((?i  "Init"     magit-stgit-init)
-             ;;
-             (?N  "New"      magit-stgit-new-popup)
-             (?n  "Rename"   magit-stgit-rename)
-             (?e  "Edit"     magit-stgit-edit-popup)
-             (?c  "Commit"   magit-stgit-commit-popup)
-             (?C  "Uncommit" magit-stgit-uncommit-popup)
-             (?k  "Delete"   magit-stgit-delete-popup)
-             ;;
-             (?f  "Float"    magit-stgit-float-popup)
-             (?s  "Sink"     magit-stgit-sink-popup)
-             ;;
-             (?\r "Show"     magit-stgit-show)
-             (?a  "Goto"     magit-stgit-goto-popup)
-             ;;
-             (?m  "Mail patches" magit-stgit-mail-popup)
-             ;;
-             (?g  "Refresh"  magit-stgit-refresh-popup)
-             (?r  "Repair"   magit-stgit-repair)
-             (?R  "Rebase"   magit-stgit-rebase-popup)
-             ;;
-             (?z  "Undo"     magit-stgit-undo-popup)
-             (?Z  "Redo"     magit-stgit-redo-popup)))
+(transient-define-prefix magit-stgit-dispatch ()
+  "Manipulate StGit patches."
+  :man-page "stg"
+  ["Stack"
+   [("i"   "Init"         magit-stgit-init)
+    ("f"   "Float"        magit-stgit-float)
+    ("s"   "Sink"         magit-stgit-sink)
+    ("a"   "Goto"         magit-stgit-goto)]
+   [("c"   "Commit"       magit-stgit-commit)
+    ("C"   "Uncommit"     magit-stgit-uncommit)
+    ("r"   "Repair"       magit-stgit-repair)
+    ("R"   "Rebase"       magit-stgit-rebase)]
+   [("z"   "Undo"         magit-stgit-undo)
+    ("Z"   "Redo"         magit-stgit-redo)]]
+  ["Patch"
+   [("N"   "New"          magit-stgit-new)
+    ("g"   "Refresh"      magit-stgit-refresh)
+    ("RET" "Show"         magit-stgit-show)]
+   [("e"   "Edit"         magit-stgit-edit)
+    ("n"   "Rename"       magit-stgit-rename)
+    ("k"   "Delete"       magit-stgit-delete)]
+   [("m"   "Mail patches" magit-stgit-mail)]])
 
 ;;;###autoload
 (defun magit-stgit-init ()
@@ -300,138 +287,180 @@ Else, asks the user for a patch name."
        (string-match-p magit-stgit-new-filename-regexp buffer-file-name)
        (git-commit-setup)))
 
-(magit-define-popup magit-stgit-new-popup
-  "Popup console for StGit new."
-  'magit-stgit-commands
-  :switches '((?a "Add \"Acked-by:\" line" "--ack")
-              (?s "Add \"Signed-off-by:\" line" "--sign"))
-  :options  '((?n "Set patch name" ""
-                  (lambda (prompt default) (read-from-minibuffer "Patch name: " default))))
-  :actions  '((?N  "New"  magit-stgit-new))
-  :default-action #'magit-stgit-new)
+(transient-define-prefix magit-stgit-new ()
+  "Create a new empty patch on top of the stack."
+  :man-page "stg-new"
+  ["Arguments"
+   ("-a" "Add Acked-by" "--ack")
+   ("-s" "Add Signed-off-by" "--sign")]
+  ["Actions"
+   ("N" "New" magit-stgit--new)])
 
 ;;;###autoload
-(defun magit-stgit-new (&rest args)
-  "Create a new StGit patch.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-new-arguments))
-  (magit-run-stgit-async "new" args))
+(defun magit-stgit--new (&optional name &rest args)
+  "Invoke `stg new ARGS... NAME'.
 
-(magit-define-popup magit-stgit-edit-popup
-  "Popup console for StGit edit."
-  'magit-stgit-commands
-  :switches '((?s "Add \"Signed-off-by:\" line" "--sign")
-              (?a "Add \"Acked-by:\" line" "--ack"))
-  :actions  '((?e  "Edit"  magit-stgit-edit))
-  :default-action #'magit-stgit-edit)
+If NAME is nil, let `stg new' read the name using the editor.
 
-;;;###autoload
-(defun magit-stgit-edit (patch &rest args)
-  "Edit the description of an existing StGit PATCH.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t nil "Edit patch (default is top)")
-                     (magit-stgit-edit-arguments)))
-  (magit-run-stgit-async "edit" "--edit" args "--" patch))
+If called interactively, read NAME from the minibuffer."
+  (interactive (cons (let ((name (read-string "Patch name: ")))
+                       (and (not (string= name "")) name))
+                     (transient-args 'magit-stgit-new)))
+  (magit-run-stgit-async "new" args name))
 
-(magit-define-popup magit-stgit-float-popup
-  "Popup console for StGit float."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes" "--keep"))
-  :actions  '((?f  "Float"  magit-stgit-float))
-  :default-action #'magit-stgit-float)
+(transient-define-prefix magit-stgit-edit ()
+  "Edit the description of an existing patch."
+  :man-page "stg-edit"
+  ["Arguments"
+   ("-s" "Add Signed-off-by" "--sign")
+   ("-a" "Add Acked-by" "--ack")]
+  ["Actions"
+   ("e" "Edit" magit-stgit--edit)])
 
 ;;;###autoload
-(defun magit-stgit-float (patches &rest args)
-  "Float StGit PATCHES to the top.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Float patch")
-                     (magit-stgit-float-arguments)))
-  (magit-run-stgit-and-mark-remove patches "float" args "--" patches))
+(defun magit-stgit--edit (&optional patch &rest args)
+  "Invoke `stg edit ARGS... PATCH'.
+
+If PATCH is nil, edit the current patch.
+
+If called interactively, edit the patch at point or read one from
+the minibuffer."
+  (interactive (cons (car (magit-stgit-read-patches nil nil t t "Edit patch"))
+                     (transient-args 'magit-stgit-edit)))
+  (magit-run-stgit-async "edit" "--edit" args patch))
+
+(transient-define-prefix magit-stgit-float ()
+  "Move a set of patches toward the top of the stack."
+  :man-page "stg-float"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")]
+  ["Actions"
+   ("f" "Float" magit-stgit--float)])
+
+;;;###autoload
+(defun magit-stgit--float (patches &rest args)
+  "Invoke `stg float ARGS... PATCHES...'.
+
+If called interactively, float the patches around point or read
+one from the minibuffer."
+  (interactive (cons (magit-stgit-read-patches t t t t "Float patch")
+                     (transient-args 'magit-stgit-float)))
+  (magit-run-stgit-and-mark-remove patches "float" args patches))
 
 ;;;###autoload
 (defun magit-stgit-rename (oldname newname)
-  "Rename StGit patch OLDNAME to NEWNAME."
+  "Invoke `stg rename OLDNAME NEWNAME'.
+
+If called interactively, read OLDNAME and NEWNAME from the
+minibuffer."
   (interactive
    (list (magit-stgit-read-patch "Patch to rename" t)
          (read-from-minibuffer "New name: ")))
   (magit-run-stgit "rename" oldname newname))
 
-(magit-define-popup magit-stgit-sink-popup
-  "Popup console for StGit sink."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes" "--keep"))
-  :options  '((?t "Sink patches below the target patch (else to bottom)"
-                  "--to="
-                  (lambda (prompt &optional default) (magit-stgit-read-patch prompt t))))
-  :actions  '((?s  "Sink"  magit-stgit-sink))
-  :default-action #'magit-stgit-float)
+(transient-define-prefix magit-stgit-sink ()
+  "Move a set of patches toward the bottom of the stack."
+  :man-page "stg-sink"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")
+   ("-t" "Sink patches below target" "--to="
+    :reader (lambda (_prompt _initial-input _history)
+              (magit-stgit-read-patch "Sink below" t)))]
+  ["Actions"
+   ("s" "Sink" magit-stgit--sink)])
 
 ;;;###autoload
-(defun magit-stgit-sink (patches &rest args)
-  "Sink StGit PATCHES deeper down the stack.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Sink patch")
-                     (magit-stgit-sink-arguments)))
-  (when (and (called-interactively-p 'any)
-             (not magit-current-popup))
-    (let ((target (magit-stgit-read-patch "Target patch (default is bottom)")))
-      (when target
-        (setq args (append args (list "-t" target))))))
-  (magit-run-stgit-and-mark-remove patches "sink" args "--" patches))
+(defun magit-stgit--sink (&optional patches &rest args)
+  "Invoke `stg sink ARGS... PATCHES...'.
 
-(magit-define-popup magit-stgit-commit-popup
-  "Popup console for StGit commit."
-  'magit-stgit-commands
-  :switches '((?a "Commit all applied patches" "--all"))
-  :options  '((?n "Commit the specified number of patches" "--number=" read-number))
-  :actions  '((?c  "Commit"  magit-stgit-commit))
-  :default-action #'magit-stgit-commit)
+If PATCHES is nil, sink the current patch.
 
-;;;###autoload
-(defun magit-stgit-commit (patches &rest args)
-  "Permanently store patches into the stack base."
-  (interactive (list (magit-stgit-read-patches t t t t nil)
-                     (magit-stgit-commit-arguments)))
-  (when (and (member "--all" (car args))
-             (= 1 (length patches)))
-    (setq patches (list nil)))
-  (magit-run-stgit-and-mark-remove patches "commit" args "--" patches))
+If called interactively, sink the patches around point or read
+one from the minibuffer. Read the target patch from the
+minibuffer as well."
+  (interactive (cons (magit-stgit-read-patches t t t t "Sink patch")
+                     (transient-args 'magit-stgit-sink)))
+  (let ((target (and (called-interactively-p 'any)
+                     (not transient-current-prefix)
+                     (magit-stgit-read-patch "Sink below" t))))
+    (magit-run-stgit-and-mark-remove
+     patches (and target (list "-t" target)) "sink" args patches)))
 
-(magit-define-popup magit-stgit-uncommit-popup
-  "Popup console for StGit uncommit."
-  'magit-stgit-commands
-  :options  '((?n "Uncommit the specified number of commits" "--num=" read-number))
-  :actions  '((?C  "Uncommit"  magit-stgit-uncommit))
-  :default-action #'magit-stgit-uncommit)
+(transient-define-prefix magit-stgit-commit ()
+  "Commit a set of patches."
+  :man-page "stg-commit"
+  ["Arguments"
+   ("-a" "Commit all applied patches" "--all")
+   ("-n" "Commit the first N patches from the bottom up" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))]
+  ["Actions"
+   ("c" "Commit" magit-stgit--commit)])
+
+(defun magit-stgit--commit-need-patches-p (args)
+  (and (not (member "--all" args))
+       (not (member "--number" args))
+       (not (transient-arg-value "--number=" args))))
 
 ;;;###autoload
-(defun magit-stgit-uncommit (&rest args)
-  "Turn regular commits into StGit patches."
-  (interactive (-flatten (list (magit-stgit-uncommit-arguments))))
+(defun magit-stgit--commit (patches &rest args)
+  "Invoke `stg commit ARGS... PATCHES...'.
+
+If PATCHES is nil, commit the bottommost patch.
+
+PATCHES is ignored if ARGS contains `--all' or `--number'.
+
+If called interactively, commit the patches around point or read
+one from the minibuffer."
+  (interactive (let ((args (transient-args 'magit-stgit-commit)))
+                 (cons (and (magit-stgit--commit-need-patches-p args)
+                            (magit-stgit-read-patches t t t t "Commit patch"))
+                       args)))
+  (let ((patches (and (magit-stgit--commit-need-patches-p args)
+                      (or patches (error "No patches provided")))))
+    (magit-run-stgit-and-mark-remove patches "commit" args patches)))
+
+(transient-define-prefix magit-stgit-uncommit ()
+  "Uncommit a set of patches."
+  :man-page "stg-uncommit"
+  ["Arguments"
+   ("-n" "Uncommit the first N commits from the base down" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))]
+  ["Actions"
+   ("C" "Uncommit" magit-stgit--uncommit)])
+
+;;;###autoload
+(defun magit-stgit--uncommit (&rest args)
+  "Invoke `stg uncommit ARGS...'."
+  (interactive (transient-args 'magit-stgit-uncommit))
   (magit-run-stgit "uncommit" args))
 
-(magit-define-popup magit-stgit-refresh-popup
-  "Popup console for StGit refresh."
-  'magit-stgit-commands
-  :switches '((?u "Only update the current patch files"    "--update")
-              (?i "Refresh from index instead of worktree" "--index")
-              (?F "Force refresh even if index is dirty"   "--force")
-              (?e "Edit the patch description"             "--edit")
-              (?s "Add \"Signed-off-by:\" line"            "--sign")
-              (?a "Add \"Acked-by:\" line"                 "--ack"))
-  :actions  '((?g  "Refresh"  magit-stgit-refresh))
-  :default-action #'magit-stgit-refresh)
+(transient-define-prefix magit-stgit-refresh ()
+  "Include the latest changes into a patch."
+  :man-page "stg-refresh"
+  ["Arguments"
+   ("-u" "Only update the current patch files" "--update")
+   ("-i" "Refresh from index instead of worktree" "--index")
+   ("-F" "Force refresh even if index is dirty" "--force")
+   ("-e" "Edit the patch description" "--edit")
+   ("-s" "Add Signed-off-by" "--sign")
+   ("-a" "Add Acked-by" "--ack")]
+  ["Actions"
+   ("g" "Refresh" magit-stgit--refresh)])
 
 ;;;###autoload
-(defun magit-stgit-refresh (&optional patch &rest args)
-  "Refresh StGit patch PATCH.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t nil "Refresh patch (default top)")
-                     (magit-stgit-refresh-arguments)))
-  (setq patch (nth 0 patch))
-  (when patch
-    (setq args (append args (list (format "--patch=%s" patch)))))
-  (magit-run-stgit-async "refresh" args))
+(defun magit-stgit--refresh (&optional patch &rest args)
+  "Invoke `stg refresh --patch PATCH ARGS...'.
+
+If PATCH is nil, refresh the current patch.
+
+If called interactively, refresh the patch at point or read one
+from the minibuffer."
+  (interactive (cons (car (magit-stgit-read-patches
+                           nil nil t t "Refresh patch"))
+                     (transient-args 'magit-stgit-refresh)))
+  (magit-run-stgit-async "refresh" (and patch (list "--patch" patch)) args))
 
 ;;;###autoload
 (defun magit-stgit-repair ()
@@ -443,76 +472,84 @@ into the series."
   (magit-run-stgit "repair")
   (message "Repairing series...done"))
 
-(magit-define-popup magit-stgit-rebase-popup
-  "Popup console for StGit rebase."
-  'magit-stgit-commands
-  :switches '((?n "Do not push the patches back after rebasing" "--nopush")
-              (?m "Check for patches merged upstream"           "--merged"))
-  :actions  '((?R  "Rebase"  magit-stgit-rebase))
-  :default-action #'magit-stgit-rebase)
+(transient-define-prefix magit-stgit-rebase ()
+  "Rebase the stack."
+  :man-page "stg-rebase"
+  ["Arguments"
+   ("-n" "Do not push the patches back after rebasing" "--nopush")
+   ("-m" "Check for patches merged upstream" "--merged")]
+  ["Actions"
+   ("R" "Rebase" magit-stgit--rebase)])
 
 ;;;###autoload
-(defun magit-stgit-rebase (&rest args)
-  "Rebase a StGit patch series.
-Use ARGS to pass additional arguments"
-  (interactive (magit-stgit-rebase-arguments))
-  (let* ((branch (magit-get-current-branch))
-         (remote (magit-get-remote branch)))
-    (if (not (and remote branch))
-        (user-error "Branch has no upstream")
-      (when (y-or-n-p "Update remote first? ")
-        (message "Updating remote...")
-        (magit-run-git-async "remote" "update" remote)
-        (message "Updating remote...done"))
-      (magit-run-stgit "rebase" args "--" (format "remotes/%s/%s" remote branch)))))
+(defun magit-stgit--rebase (remote branch &rest args)
+  "Invoke `stg rebase ARGS... remotes/REMOTE/BRANCH'.
 
-(magit-define-popup magit-stgit-delete-popup
-  "Popup console for StGit delete."
-  'magit-stgit-commands
-  :switches '((?s "Spill patch contents to worktree and index" "--spill"))
-  :actions  '((?k  "Delete"  magit-stgit-delete))
-  :default-action #'magit-stgit-delete)
+If called interactively, use the current branch and its remote,
+and ask whether to update the remote first."
+  (interactive (append (let* ((branch (magit-get-current-branch))
+                              (remote (magit-get-remote branch)))
+                         (if (and remote branch)
+                             (list remote branch)
+                           (user-error "Branch has no upstream")))
+                       (transient-args 'magit-stgit-rebase)))
+  (when (and (called-interactively-p 'any)
+             (y-or-n-p "Update remote first? "))
+    (message "Updating remote...")
+    (magit-run-git-async "remote" "update" remote)
+    (message "Updating remote...done"))
+  (magit-run-stgit "rebase" args (format "remotes/%s/%s" remote branch)))
+
+(transient-define-prefix magit-stgit-delete ()
+  "Delete a set of patches."
+  :man-page "stg-delete"
+  ["Arguments"
+   ("-s" "Spill patch contents to worktree and index" "--spill")]
+  ["Actions"
+   ("k" "Delete" magit-stgit--delete)])
 
 ;;;###autoload
-(defun magit-stgit-delete (patches &rest args)
-  "Delete StGit patches.
-Argument PATCHES is a list of patchnames.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches t t t t "Delete patch")
-                     (magit-stgit-delete-arguments)))
-  (let ((affected-files
-         (-mapcat (lambda (patch)
-                    (magit-stgit-lines "files" "--bare" patch))
-                  patches)))
-    (when (and (called-interactively-p 'any)
-               (not magit-current-popup)
-               (and affected-files (y-or-n-p "Spill contents? ")))
-      (setq args (append args (list "--spill")))))
-  (let ((spill (member "--spill" args)))
-    (when spill
-      (setq spill (list "--spill")))
+(defun magit-stgit--delete (patches &rest args)
+  "Invoke `stg delete ARGS... PATCHES...'.
+
+If called interactively, delete the patches around point or read
+one from the minibuffer. Ask whether to spill the contents and
+ask for confirmation before deleting."
+  (interactive (cons (magit-stgit-read-patches t t t t "Delete patch")
+                     (transient-args 'magit-stgit-delete)))
+  (let* ((non-empty-p (-some (-cut magit-stgit-lines "files" "--bare" <>)
+                             patches))
+         (args (if (and (called-interactively-p 'any)
+                        (not transient-current-prefix)
+                        non-empty-p
+                        (y-or-n-p "Spill contents? "))
+                   (cons "--spill" args)
+                 args))
+         (spillp (member "--spill" args)))
     (when (or (not (called-interactively-p 'any))
-              (yes-or-no-p (format "Delete%s patch%s %s? "
-                                   (if spill " and spill" "")
-                                   (if (> (length patches) 1) "es" "")
-                                   (mapconcat (lambda (patch) (format "`%s'" patch)) patches ", "))))
-      (magit-run-stgit-and-mark-remove patches "delete" args "--" patches))))
+              (yes-or-no-p
+               (format "Delete%s patch%s %s? "
+                       (if spillp " and spill" "")
+                       (if (> (length patches) 1) "es" "")
+                       (mapconcat (lambda (patch) (format "`%s'" patch))
+                        patches ", "))))
+      (magit-run-stgit-and-mark-remove patches "delete" args patches))))
 
-(magit-define-popup magit-stgit-goto-popup
-  "Popup console for StGit goto."
-  'magit-stgit-commands
-  :switches '((?k "Keep the local changes"            "--keep")
-              (?m "Check for patches merged upstream" "--merged"))
-  :actions  '((?a  "Goto"  magit-stgit-goto))
-  :default-action #'magit-stgit-goto)
+(transient-define-prefix magit-stgit-goto ()
+  "Make an arbitrary patch current."
+  :man-page "stg-goto"
+  ["Arguments"
+   ("-k" "Keep the local changes" "--keep")
+   ("-m" "Check for patches merged upstream" "--merged")]
+  ["Actions"
+   ("a" "Goto" magit-stgit--goto)])
 
 ;;;###autoload
-(defun magit-stgit-goto (patch &rest args)
-  "Set PATCH as target of StGit push and pop operations.
-Use ARGS to pass additional arguments."
-  (interactive (list (magit-stgit-read-patches nil nil t t "Goto patch")
-                     (magit-stgit-goto-arguments)))
-  (magit-run-stgit "goto" patch args))
+(defun magit-stgit--goto (patch &rest args)
+  "Invoke `stg goto ARGS... PATCH'."
+  (interactive (cons (car (magit-stgit-read-patches nil nil t t "Goto patch"))
+                     (transient-args 'magit-stgit-goto)))
+  (magit-run-stgit "goto" args patch))
 
 ;;;###autoload
 (defun magit-stgit-show (patch)
@@ -520,113 +557,120 @@ Use ARGS to pass additional arguments."
   (interactive (magit-stgit-read-patches nil nil t t "Show patch"))
   (magit-show-commit (car (magit-stgit-lines "id" patch))))
 
-(magit-define-popup magit-stgit-undo-popup
-  "Popup console for StGit undo."
-  'magit-stgit-commands
-  :options  '((?n "Undo the last N commands" "--number=" read-number))
-  :switches '((?h "Discard changes in index/worktree" "--hard"))
-  :actions  '((?z  "Undo"  magit-stgit-undo))
-  :default-action #'magit-stgit-undo)
+(transient-define-prefix magit-stgit-undo ()
+  "Undo a previous stack operation."
+  :man-page "stg-undo"
+  ["Arguments"
+   ("-n" "Undo the last N operations" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))
+   ("-h" "Discard changes in index/worktree" "--hard")]
+  ["Actions"
+   ("z"  "Undo" magit-stgit--undo)])
 
 ;;;###autoload
-(defun magit-stgit-undo (&rest args)
-  "Undo the last operation.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-undo-arguments))
+(defun magit-stgit--undo (&rest args)
+  "Invoke `stg undo ARGS...'."
+  (interactive (transient-args 'magit-stgit-undo))
   (magit-run-stgit "undo" args))
 
-(magit-define-popup magit-stgit-redo-popup
-  "Popup console for StGit redo."
-  'magit-stgit-commands
-  :options  '((?n "Undo the last N commands" "--number=" read-number))
-  :switches '((?h "Discard changes in index/worktree" "--hard"))
-  :actions  '((?Z  "Redo"  magit-stgit-redo))
-  :default-action #'magit-stgit-redo)
+(transient-define-prefix magit-stgit-redo ()
+  "Undo a previous undo operation."
+  :man-page "stg-redo"
+  ["Arguments"
+   ("-n" "Undo the last N undos" "--number="
+    :reader (lambda (prompt _initial-input history)
+              (number-to-string (read-number prompt nil history))))
+   ("-h" "Discard changes in index/worktree" "--hard")]
+  ["Actions"
+   ("Z" "Redo" magit-stgit--redo)])
 
 ;;;###autoload
-(defun magit-stgit-redo (&rest args)
-  "Undo the last undo operation.
-Use ARGS to pass additional arguments."
-  (interactive (magit-stgit-redo-arguments))
+(defun magit-stgit--redo (&rest args)
+  "Invoke `stg redo ARGS...'."
+  (interactive (transient-args 'magit-stgit-redo))
   (magit-run-stgit "redo" args))
 
 ;;;; magit-stgit-mail
 
-(magit-define-popup magit-stgit-mail-popup
-  "Popup console for StGit mail."
-  'magit-stgit-commands
+(transient-define-prefix magit-stgit-mail ()
+  "Send a set of patches by e-mail."
+  :value '("--git" "--auto-recipients")
   :man-page "stg-mail"
-  :switches '((?m "Generate an mbox file instead of sending" "--mbox")
-              (?g "Use git send-email" "--git" t)
-              (?e "Edit cover letter before send" "--edit-cover")
-              (?a "Auto-detect recipients for each patch" "--auto")
-              (?A "Auto-detect To, Cc and Bcc for all patches from cover"
-                  "--auto-recipients" t))
-  :options '((?o "Set file as cover message" "--cover="
-                 (lambda (prompt default) (read-file-name "Find file: " default)))
-             (?v "Add version to [PATCH ...]" "--version=")
-             (?p "Add prefix to [... PATCH ...]" "--prefix=")
-             (?t "Mail To" "--to=")
-             (?c "Mail Cc" "--cc=")
-             (?b "Mail Bcc:" "--bcc="))
-  :actions '((?m "Send" magit-stgit-mail)))
+  ["Arguments"
+   ("-m" "Generate an mbox file instead of sending" "--mbox")
+   ("-g" "Use git send-email" "--git")
+   ("-e" "Edit cover letter before sending" "--edit-cover")
+   ("-a" "Automatically Cc the patch signers" "--auto")
+   ("-A" "Auto-detect To, Cc and Bcc for all patches from cover"
+    "--auto-recipients")
+   ""
+   ("-o" "Set file as cover message" "--cover="
+    :reader (lambda (_prompt initial-input _history)
+              (read-file-name "Find file: " nil nil nil initial-input)))
+   ("-v" "Add version to [PATCH ...]" "--version=")
+   ("-p" "Add prefix to [... PATCH ...]" "--prefix=")
+   ("-t" "Mail To" "--to=")
+   ("-c" "Mail Cc" "--cc=")
+   ("-b" "Mail Bcc" "--bcc=")]
+  ["Actions"
+   ("m" "Send" magit-stgit--mail)])
+
+(defun magit-stgit--mail-recipients (&optional cover)
+  "Return a list of zero or one of each of `--to', `--cc' and
+`--bcc' arguments for `stg mail', with the values determined from
+the cover letter file COVER, or the current buffer if COVER is
+nil."
+  (let ((buffer (current-buffer))
+        (fields '()))
+    (with-temp-buffer
+      (if cover
+          (insert-file-contents cover)
+        (insert-buffer-substring buffer))
+      (goto-char (point-min))
+      (while (re-search-forward (rx (group (or "To" "Cc" "Bcc")) ":" (+ blank)
+                                    (group (* nonl)) (* blank) eol)
+                                nil t)
+        (let ((field (match-string 1))
+              (recipient (match-string 2)))
+          (when (string-match "<" recipient)
+            (setf (alist-get field fields nil nil #'equal) recipient)))))
+    (cl-loop for (field . recipient) in fields
+             collect (format "--%s=\"%s\"" (downcase field) recipient))))
 
 ;;;###autoload
-(defun magit-stgit-mail (patches &rest args)
-  "Send PATCHES with \"stg mail\".
+(defun magit-stgit--mail (patches &rest args)
+  "Invoke `stg mail ARGS... -- PATCHES...'.
 
-If a cover is specified, it will be searched to automatically set
-the To, Cc, and Bcc fields for all patches."
-  (interactive (list (magit-stgit-read-patches t t t t "Send patch")
-                     (magit-stgit-mail-arguments)))
-  (setq args (-flatten args))           ; nested list when called from popup
-  (let* ((auto "--auto-recipients")
-         (have-auto (member auto args))
-         (cover (car (delq nil (mapcar (lambda (arg)
-                                         (if (string-prefix-p "--cover=" arg)
-                                             arg nil))
-                                       args))))
-         (cover-pos -1))
-    (when have-auto
-      (setq args (delete auto args)))
-    (when (and have-auto cover)
-      (setq cover (substring cover 8))
-      (setq cover (with-temp-buffer (insert-file-contents cover)
-                                    (buffer-string)))
-      (while (setq cover-pos
-                   (string-match
-                        "^\\(To\\|Cc\\|Bcc\\):[[:space:]]+\\(.*\\)[[:space:]]*$"
-                        cover (1+ cover-pos)))
-        (let ((field (match-string 1 cover))
-              (recipient (match-string 2 cover)))
-          (setq field (match-string 1 cover))
-          (when (string-match "<" recipient)
-            (setq recipient (format "\"%s\"" recipient)))
-          (cond ((equal field "To")
-                 (setq args (cons (format "--to=%s" recipient)
-                                  args)))
-                ((equal field "Cc")
-                 (setq args (cons (format "--cc=%s" recipient)
-                                  args)))
-                ((equal field "Bcc")
-                 (setq args (cons (format "--bcc=%s" recipient)
-                                  args)))))))
-    (magit-run-stgit-async "mail" args patches)))
+ARGS can contain the fake argument `--auto-recipients' which is
+not passed to `stg mail'. If the argument is specified and
+`--cover' is present in ARGS, the cover letter will be searched
+to automatically set the values of `--to', `--cc' and `--bcc'.
+
+If called interactively, mail the patches around point or read
+one from the minibuffer."
+  (interactive (cons (magit-stgit-read-patches t t t t "Send patch")
+                     (transient-args 'magit-stgit-mail)))
+  (let* ((autop (member "--auto-recipients" args))
+         (args (remove "--auto-recipients" args))
+         (cover (transient-arg-value "--cover=" args)))
+    (magit-run-stgit-async
+     "mail" args (and autop cover (magit-stgit--mail-recipients cover))
+     "--" patches)))
 
 ;;; Mode
 
-(defvar magit-stgit-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "/" 'magit-stgit-popup)
-    map))
-
-(magit-define-popup-action 'magit-dispatch-popup ?/ "StGit" 'magit-stgit-popup)
+;;;###autoload
+(eval-after-load 'magit
+  '(progn
+    (define-key magit-mode-map "/" 'magit-stgit-dispatch)
+    (transient-append-suffix 'magit-dispatch '(0 -1 -1)
+      '("/" "StGit" magit-stgit-dispatch))))
 
 ;;;###autoload
 (define-minor-mode magit-stgit-mode
   "StGit support for Magit."
   :lighter magit-stgit-mode-lighter
-  :keymap  magit-stgit-mode-map
   (unless (derived-mode-p 'magit-mode)
     (user-error "This mode only makes sense with Magit"))
   (if magit-stgit-mode
@@ -649,35 +693,35 @@ the To, Cc, and Bcc fields for all patches."
     ["Initialize" magit-stgit-init
      :help "Initialize StGit support for the current branch"]
     "---"
-    ["Create new patch" magit-stgit-new-popup
+    ["Create new patch" magit-stgit-new
      :help "Create a new StGit patch"]
     ["Rename patch" magit-stgit-rename
      :help "Rename a patch"]
-    ["Edit patch" magit-stgit-edit-popup
+    ["Edit patch" magit-stgit-edit
      :help "Edit a patch"]
-    ["Commit patch" magit-stgit-commit-popup
+    ["Commit patch" magit-stgit-commit
      :help "Permanently store the base patch into the stack base"]
-    ["Uncommit patch" magit-stgit-uncommit-popup
+    ["Uncommit patch" magit-stgit-uncommit
      :help "Turn a regular commit into an StGit patch"]
-    ["Delete patch" magit-stgit-delete-popup
+    ["Delete patch" magit-stgit-delete
      :help "Delete an StGit patch"]
     "---"
-    ["Float patch" magit-stgit-float-popup
+    ["Float patch" magit-stgit-float
      :help "Float StGit patch to the top"]
-    ["Sink patch" magit-stgit-sink-popup
+    ["Sink patch" magit-stgit-sink
      :help "Sink StGit patch deeper down the stack"]
     "---"
-    ["Refresh patch" magit-stgit-refresh-popup
+    ["Refresh patch" magit-stgit-refresh
      :help "Refresh the contents of a patch in an StGit series"]
     ["Repair" magit-stgit-repair
      :help "Repair StGit metadata if branch was modified with git commands"]
-    ["Rebase series" magit-stgit-rebase-popup
+    ["Rebase series" magit-stgit-rebase
      :help "Rebase an StGit patch series"]
     "---"
-    ["Undo the last operation" magit-stgit-undo-popup
-     :help "Undo the last operation"]
-    ["Undo the last undo operation" magit-stgit-redo-popup
-     :help "Undo the last undo operation"]))
+    ["Undo stack operation" magit-stgit-undo
+     :help "Undo a previous stack operation"]
+    ["Redo stack operation" magit-stgit-redo
+     :help "Undo a previous undo operation"]))
 
 (easy-menu-add-item 'magit-mode-menu '("Extensions") magit-stgit-mode-menu)
 
@@ -688,10 +732,10 @@ the To, Cc, and Bcc fields for all patches."
 
 (defvar magit-stgit-patch-section-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "k"  'magit-stgit-delete)
-    (define-key map "a"  'magit-stgit-goto)
-    (define-key map "\r" 'magit-stgit-show)
-    (define-key map "#"  #'magit-stgit-mark-toggle)
+    (define-key map "k" #'magit-stgit--delete)
+    (define-key map "a" #'magit-stgit--goto)
+    (define-key map (kbd "RET") #'magit-stgit-show)
+    (define-key map "#" #'magit-stgit-mark-toggle)
     map))
 
 (defun magit-insert-stgit-series ()
