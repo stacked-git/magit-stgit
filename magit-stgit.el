@@ -1,13 +1,16 @@
 ;;; magit-stgit.el --- StGit extension for Magit  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2011-2019  The Magit Project Contributors
+;; Copyright (C) 2011-2023  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
-;; Maintainer: UNMAINTAINED
-;; Keywords: vc tools
+;; Maintainer: Peter Grayson <pete@jpgrayson.net>
+;; Homepage: https://github.com/stacked-git/magit-stgit
+;; Keywords: git tools vc
 
 ;; Package: magit-stgit
 ;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (transient "0.3.7"))
+
+;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; Magit-StGit is free software; you can redistribute it and/or modify it
 ;; under the terms of the GNU General Public License as published by
