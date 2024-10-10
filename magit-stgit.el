@@ -313,7 +313,8 @@ If called interactively, read NAME from the minibuffer."
   :man-page "stg-edit"
   ["Arguments"
    ("-s" "Add Signed-off-by" "--sign")
-   ("-a" "Add Acked-by" "--ack")]
+   ("-a" "Add Acked-by" "--ack")
+   ("-r" "Add Reviewed-by" "--review")]
   ["Actions"
    ("e" "Edit" magit-stgit--edit)])
 
