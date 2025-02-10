@@ -10,6 +10,7 @@
 ;; Package: magit-stgit
 ;; Package-Requires: (
 ;;     (emacs "27.1")
+;;     (llama "0.6.0")
 ;;     (magit "4.3.0")
 ;;     (transient "0.8.4"))
 
@@ -65,6 +66,7 @@
 
 (require 'cl-lib)
 (require 'dash)
+(require 'llama)
 
 (require 'magit)
 (require 'transient)
@@ -152,7 +154,7 @@ Any list in ARGS is flattened."
 (defun magit-run-stgit-and-mark-remove (patches &rest args)
   "Run `magit-run-stgit' and `magit-stgit-mark-remove'.
 Argument PATCHES sets the marks to remove, and ARGS the arguments to StGit."
-  (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches)) args))
+  (magit-run-stgit-callback (##magit-stgit-mark-remove patches) args))
 
 (defun magit-run-stgit-callback (callback &rest args)
   "Run StGit command with given arguments.
@@ -584,7 +586,7 @@ one from the minibuffer. Ask whether to spill the contents and
 ask for confirmation before deleting."
   (interactive (cons (magit-stgit-read-patches t t t t "Delete patch")
                      (transient-args 'magit-stgit-delete)))
-  (let* ((non-empty-p (-some (-cut magit-stgit-lines "files" "--bare" <>)
+  (let* ((non-empty-p (-some (##magit-stgit-lines "files" "--bare" %)
                              patches))
          (args (if (and (called-interactively-p 'any)
                         (not transient-current-prefix)
@@ -598,8 +600,7 @@ ask for confirmation before deleting."
                (format "Delete%s patch%s %s? "
                        (if spillp " and spill" "")
                        (if (> (length patches) 1) "es" "")
-                       (mapconcat (lambda (patch) (format "`%s'" patch))
-                        patches ", "))))
+                       (mapconcat (##format "`%s'" %) patches ", "))))
       (magit-run-stgit-and-mark-remove patches "delete" args patches))))
 
 (transient-define-prefix magit-stgit-goto ()
