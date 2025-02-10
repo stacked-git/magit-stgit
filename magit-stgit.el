@@ -1,6 +1,6 @@
 ;;; magit-stgit.el --- StGit extension for Magit  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2011-2023  The Magit Project Contributors
+;; Copyright (C) 2011-2025  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
 ;; Maintainer: Peter Grayson <pete@jpgrayson.net>
