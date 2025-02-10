@@ -8,7 +8,10 @@
 ;; Keywords: git tools vc
 
 ;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (transient "0.3.7"))
+;; Package-Requires: (
+;;     (emacs "27.1")
+;;     (magit "4.3.0")
+;;     (transient "0.8.4"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
