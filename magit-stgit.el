@@ -61,7 +61,8 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'dash)
+(require 'seq)
+(require 'subr-x)
 
 (require 'magit)
 (require 'transient)
@@ -143,8 +144,9 @@ Any list in ARGS is flattened."
   (with-editor "GIT_EDITOR"
     (let ((magit-process-popup-time -1))
       (message "Running %s %s" magit-stgit-executable
-               (mapconcat 'identity (-flatten args) " "))
-      (apply #'magit-start-process magit-stgit-executable nil (-flatten args)))))
+               (mapconcat 'identity (flatten-tree args) " "))
+      (apply #'magit-start-process magit-stgit-executable nil
+             (flatten-tree args)))))
 
 (defun magit-run-stgit-and-mark-remove (patches &rest args)
   "Run `magit-run-stgit' and `magit-stgit-mark-remove'.
@@ -203,8 +205,8 @@ REQUIRE-MATCH."
     (or (and use-marks intersection)
         region
         (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
-        (and use-point (-list (magit-section-value-if 'stgit-patch)))
-        (and prompt (-list (magit-stgit-read-patch prompt require-match))))))
+        (and use-point (seq--into-list (magit-section-value-if 'stgit-patch)))
+        (and prompt (seq--into-list (magit-stgit-read-patch prompt require-match))))))
 
 (defun magit-stgit-mark-contains (patch)
   "Return whether the given PATCH is marked."
@@ -581,8 +583,10 @@ one from the minibuffer. Ask whether to spill the contents and
 ask for confirmation before deleting."
   (interactive (cons (magit-stgit-read-patches t t t t "Delete patch")
                      (transient-args 'magit-stgit-delete)))
-  (let* ((non-empty-p (-some (-cut magit-stgit-lines "files" "--bare" <>)
-                             patches))
+  (let* ((non-empty-p (seq-some
+                       (lambda (patch)
+                         (magit-stgit-lines "files" "--bare" patch))
+                       patches))
          (args (if (and (called-interactively-p 'any)
                         (not transient-current-prefix)
                         non-empty-p
