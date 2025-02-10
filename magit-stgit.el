@@ -7,7 +7,6 @@
 ;; Homepage: https://github.com/stacked-git/magit-stgit
 ;; Keywords: git tools vc
 
-;; Package: magit-stgit
 ;; Package-Requires: (
 ;;     (emacs "27.1")
 ;;     (llama "0.6.0")
