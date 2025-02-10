@@ -826,7 +826,7 @@ one from the minibuffer."
 (defun magit-stgit-wash-patch ()
   (when (looking-at magit-stgit-patch-re)
     (magit-bind-match-strings (empty state patch msg) nil
-      (delete-region (point) (point-at-eol))
+      (delete-region (point) (line-end-position))
       (magit-insert-section (stgit-patch patch)
         (insert (if (magit-stgit-mark-contains patch) "#" " "))
         (insert (propertize state 'face
