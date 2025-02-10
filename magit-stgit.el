@@ -140,7 +140,7 @@
 (defun magit-run-stgit (&rest args)
   "Run StGit command with given arguments.
 Any list in ARGS is flattened."
-  (magit-run-stgit-callback (lambda ()) args))
+  (magit-run-stgit-callback nil args))
 
 (defun magit-run-stgit-async (&rest args)
   "Asynchronously run StGit command with given arguments.
@@ -162,7 +162,8 @@ Argument PATCHES sets the marks to remove, and ARGS the arguments to StGit."
 Function CALLBACK will be executed before refreshing the buffer.
 Any list in ARGS is flattened."
   (apply #'magit-call-process magit-stgit-executable (-flatten args))
-  (funcall callback)
+  (when callback
+    (funcall callback))
   (magit-refresh))
 
 (defun magit-stgit-lines (&rest args)
