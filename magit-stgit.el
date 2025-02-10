@@ -180,8 +180,8 @@ Any list in ARGS is flattened."
 
 (defun magit-stgit-patches-sorted (patches)
   "Return elements in PATCHES with the same partial order as the series."
-  (mapcan (lambda (patch) (and (member patch patches) (list patch)))
-          (magit-stgit-lines "series" "--noprefix")))
+  (seq-keep (##car (member % patches))
+            (magit-stgit-lines "series" "--noprefix")))
 
 ;;; Marking
 
