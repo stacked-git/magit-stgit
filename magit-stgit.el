@@ -1,14 +1,17 @@
 ;;; magit-stgit.el --- StGit extension for Magit  -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2011-2023  The Magit Project Contributors
+;; Copyright (C) 2011-2025  The Magit Project Contributors
 
 ;; Author: Lluís Vilanova <vilanova@ac.upc.edu>
 ;; Maintainer: Peter Grayson <pete@jpgrayson.net>
 ;; Homepage: https://github.com/stacked-git/magit-stgit
 ;; Keywords: git tools vc
 
-;; Package: magit-stgit
-;; Package-Requires: ((emacs "24.4") (magit "2.12.0") (transient "0.3.7"))
+;; Package-Requires: (
+;;     (emacs "27.1")
+;;     (llama "0.6.0")
+;;     (magit "4.3.0")
+;;     (transient "0.8.4"))
 
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -61,7 +64,9 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'dash)
+(require 'llama)
+(require 'seq)
+(require 'subr-x)
 
 (require 'magit)
 (require 'transient)
@@ -135,7 +140,7 @@
 (defun magit-run-stgit (&rest args)
   "Run StGit command with given arguments.
 Any list in ARGS is flattened."
-  (magit-run-stgit-callback (lambda ()) args))
+  (magit-run-stgit-callback nil args))
 
 (defun magit-run-stgit-async (&rest args)
   "Asynchronously run StGit command with given arguments.
@@ -143,20 +148,22 @@ Any list in ARGS is flattened."
   (with-editor "GIT_EDITOR"
     (let ((magit-process-popup-time -1))
       (message "Running %s %s" magit-stgit-executable
-               (mapconcat 'identity (-flatten args) " "))
-      (apply #'magit-start-process magit-stgit-executable nil (-flatten args)))))
+               (mapconcat 'identity (flatten-tree args) " "))
+      (apply #'magit-start-process magit-stgit-executable nil
+             (flatten-tree args)))))
 
 (defun magit-run-stgit-and-mark-remove (patches &rest args)
   "Run `magit-run-stgit' and `magit-stgit-mark-remove'.
 Argument PATCHES sets the marks to remove, and ARGS the arguments to StGit."
-  (magit-run-stgit-callback (lambda () (magit-stgit-mark-remove patches)) args))
+  (magit-run-stgit-callback (##magit-stgit-mark-remove patches) args))
 
 (defun magit-run-stgit-callback (callback &rest args)
   "Run StGit command with given arguments.
 Function CALLBACK will be executed before refreshing the buffer.
 Any list in ARGS is flattened."
   (apply #'magit-call-process magit-stgit-executable (-flatten args))
-  (funcall callback)
+  (when callback
+    (funcall callback))
   (magit-refresh))
 
 (defun magit-stgit-lines (&rest args)
@@ -173,8 +180,8 @@ Any list in ARGS is flattened."
 
 (defun magit-stgit-patches-sorted (patches)
   "Return elements in PATCHES with the same partial order as the series."
-  (mapcan (lambda (patch) (and (member patch patches) (list patch)))
-          (magit-stgit-lines "series" "--noprefix")))
+  (seq-keep (##car (member % patches))
+            (magit-stgit-lines "series" "--noprefix")))
 
 ;;; Marking
 
@@ -203,8 +210,8 @@ REQUIRE-MATCH."
     (or (and use-marks intersection)
         region
         (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
-        (and use-point (-list (magit-section-value-if 'stgit-patch)))
-        (and prompt (-list (magit-stgit-read-patch prompt require-match))))))
+        (and use-point (append (magit-section-value-if 'stgit-patch) nil))
+        (and prompt (append (magit-stgit-read-patch prompt require-match) nil)))))
 
 (defun magit-stgit-mark-contains (patch)
   "Return whether the given PATCH is marked."
@@ -581,8 +588,8 @@ one from the minibuffer. Ask whether to spill the contents and
 ask for confirmation before deleting."
   (interactive (cons (magit-stgit-read-patches t t t t "Delete patch")
                      (transient-args 'magit-stgit-delete)))
-  (let* ((non-empty-p (-some (-cut magit-stgit-lines "files" "--bare" <>)
-                             patches))
+  (let* ((non-empty-p (seq-some (##magit-stgit-lines "files" "--bare" %)
+                                patches))
          (args (if (and (called-interactively-p 'any)
                         (not transient-current-prefix)
                         non-empty-p
@@ -595,8 +602,7 @@ ask for confirmation before deleting."
                (format "Delete%s patch%s %s? "
                        (if spillp " and spill" "")
                        (if (> (length patches) 1) "es" "")
-                       (mapconcat (lambda (patch) (format "`%s'" patch))
-                        patches ", "))))
+                       (mapconcat (##format "`%s'" %) patches ", "))))
       (magit-run-stgit-and-mark-remove patches "delete" args patches))))
 
 (transient-define-prefix magit-stgit-goto ()
@@ -820,7 +826,7 @@ one from the minibuffer."
 (defun magit-stgit-wash-patch ()
   (when (looking-at magit-stgit-patch-re)
     (magit-bind-match-strings (empty state patch msg) nil
-      (delete-region (point) (point-at-eol))
+      (delete-region (point) (line-end-position))
       (magit-insert-section (stgit-patch patch)
         (insert (if (magit-stgit-mark-contains patch) "#" " "))
         (insert (propertize state 'face
