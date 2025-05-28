@@ -210,8 +210,10 @@ REQUIRE-MATCH."
     (or (and use-marks intersection)
         region
         (and use-marks (magit-stgit-patches-sorted magit-stgit--marked-patches))
-        (and use-point (append (magit-section-value-if 'stgit-patch) nil))
-        (and prompt (append (magit-stgit-read-patch prompt require-match) nil)))))
+        (and-let* ((use-point)
+                   (patch (magit-section-value-if 'stgit-patch)))
+          (list patch))
+        (and prompt (list (magit-stgit-read-patch prompt require-match))))))
 
 (defun magit-stgit-mark-contains (patch)
   "Return whether the given PATCH is marked."
