@@ -626,7 +626,7 @@ ask for confirmation before deleting."
 ;;;###autoload
 (defun magit-stgit-show (patch)
   "Show diff of a StGit patch."
-  (interactive (magit-stgit-read-patches nil nil t t "Show patch"))
+  (interactive (list (car (magit-stgit-read-patches nil nil t t "Show patch"))))
   (magit-show-commit (car (magit-stgit-lines "id" patch))))
 
 (transient-define-prefix magit-stgit-undo ()
